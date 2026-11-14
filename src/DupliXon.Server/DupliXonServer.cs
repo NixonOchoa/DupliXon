@@ -27,6 +27,8 @@ public sealed class DupliXonServer : IAsyncDisposable
     private readonly string _ffmpeg;
     private readonly EncoderKind _encoder;
     private readonly ConcurrentDictionary<Guid, MirrorSession> _sessions = new();
+    private readonly SystemAudioCapture _audio = new();
+    private readonly object _audioGate = new();
     private WebApplication? _app;
 
     public DupliXonServer(string ffmpeg, EncoderKind encoder, MirrorSettings settings, int port = DefaultPort)
@@ -35,6 +37,43 @@ public sealed class DupliXonServer : IAsyncDisposable
         _encoder = encoder;
         Settings = settings;
         Port = port;
+        // One loopback capture/encoder shared by every receiver.
+        _audio.OpusFrame += frame =>
+        {
+            foreach (var s in _sessions.Values) s.SendAudio(frame);
+        };
+    }
+
+    private void UpdateAudio()
+    {
+        lock (_audioGate)
+        {
+            var needed = _sessions.Values.Any(s => s.HasAudio && s.State == SessionState.Streaming);
+            try
+            {
+                if (needed && !_audio.IsRunning) _audio.Start();
+                else if (!needed && _audio.IsRunning) _audio.Stop();
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[audio] {ex.Message}"); }
+        }
+    }
+
+    /// <summary>Monitor a new session should capture, or null when Extend mode has no virtual display.</summary>
+    private DisplayOutput? ResolveDisplay(DeviceInfo device)
+    {
+        var outputs = DisplayCatalog.GetOutputs();
+        if (Settings.Mode == ShareMode.Extend)
+        {
+            var target = outputs.FirstOrDefault(o => o.IsVirtual) ?? outputs.FirstOrDefault(o => !o.IsPrimary);
+            if (target is null) return null;
+            // Size the extra screen like the device's panel so it is pixel-perfect.
+            var (w, h) = device.NativePixels;
+            if (w > 0 && h > 0 && DisplayModes.MatchResolution(target.DeviceName, w, h) is not null)
+                return DisplayCatalog.GetOutputs().FirstOrDefault(o => o.DeviceName == target.DeviceName) ?? target;
+            return target;
+        }
+        return outputs.FirstOrDefault(o => o.DeviceName == Settings.MirrorDisplay)
+               ?? outputs.FirstOrDefault(o => o.IsPrimary) ?? outputs.FirstOrDefault();
     }
 
     public int Port { get; }
@@ -73,6 +112,7 @@ public sealed class DupliXonServer : IAsyncDisposable
     public async Task DisconnectAsync(Guid id)
     {
         if (_sessions.TryRemove(id, out var session)) await session.DisposeAsync().ConfigureAwait(false);
+        UpdateAudio();
     }
 
     private async Task HandleSocketAsync(HttpContext ctx)
@@ -114,11 +154,19 @@ public sealed class DupliXonServer : IAsyncDisposable
 
                     if (!accepted) { await Send(new SignalMessage { Type = "rejected" }); break; }
 
+                    var display = ResolveDisplay(device);
+                    if (display is null)
+                    {
+                        await Send(new SignalMessage { Type = "error", Message = "El PC no tiene una pantalla virtual para usar como segunda pantalla." });
+                        break;
+                    }
+
                     var profile = StreamProfile.For(device, Settings.Quality, Settings.Fps);
-                    session = new MirrorSession(request, profile, Settings.MonitorIndex, _ffmpeg, _encoder, Send);
+                    session = new MirrorSession(request, profile, display, Settings.Audio, _ffmpeg, _encoder, Send);
                     session.StateChanged += s =>
                     {
                         if (s.State == SessionState.Ended) _sessions.TryRemove(s.Request.Id, out _);
+                        UpdateAudio();
                         SessionChanged?.Invoke(s);
                     };
                     _sessions[request.Id] = session;
@@ -191,6 +239,7 @@ public sealed class DupliXonServer : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         foreach (var id in _sessions.Keys.ToArray()) await DisconnectAsync(id).ConfigureAwait(false);
+        _audio.Dispose();
         if (_app is not null) await _app.DisposeAsync().ConfigureAwait(false);
     }
 }

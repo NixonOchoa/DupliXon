@@ -14,9 +14,9 @@ using QRCoder;
 
 namespace DupliXon.App.ViewModels;
 
-public sealed partial class MonitorOption(int index, string label) : ObservableObject
+public sealed partial class MonitorOption(string deviceName, string label) : ObservableObject
 {
-    public int Index { get; } = index;
+    public string DeviceName { get; } = deviceName;
     public string Label { get; } = label;
     [ObservableProperty] private bool _isSelected;
 }
@@ -55,16 +55,82 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public bool HasDevices => Devices.Count > 0;
 
+    // ---- Share mode & audio ----
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMirror), nameof(IsExtend), nameof(ShowVirtualSetup), nameof(ShowVirtualReady))]
+    private ShareMode _mode = ShareMode.Mirror;
+    [ObservableProperty] private bool _audio = true;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowVirtualSetup), nameof(ShowVirtualReady))]
+    private string? _virtualDisplay;
+    [ObservableProperty] private bool _isInstallingDriver;
+
+    public bool IsMirror => Mode == ShareMode.Mirror;
+    public bool IsExtend => Mode == ShareMode.Extend;
+    public bool ShowVirtualSetup => IsExtend && VirtualDisplay is null;
+    public bool ShowVirtualReady => IsExtend && VirtualDisplay is not null;
+
     public MainViewModel()
     {
         Devices.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasDevices));
-        var monitors = NativeMethods.GetMonitors();
-        for (var i = 0; i < monitors.Count; i++)
+        RefreshDisplays();
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) =>
+            Application.Current?.Dispatcher.BeginInvoke(RefreshDisplays);
+    }
+
+    [RelayCommand]
+    private void RefreshDisplays()
+    {
+        IReadOnlyList<DisplayOutput> outputs;
+        try { outputs = DisplayCatalog.GetOutputs(); }
+        catch { return; }
+
+        var selected = _settings.MirrorDisplay;
+        Monitors.Clear();
+        var physical = outputs.Where(o => !o.IsVirtual).ToList();
+        for (var i = 0; i < physical.Count; i++)
         {
-            var m = monitors[i];
-            var label = monitors.Count == 1 ? $"Pantalla · {m.Width}×{m.Height}" : $"{(m.IsPrimary ? "Principal" : $"Pantalla {i + 1}")} · {m.Width}×{m.Height}";
-            Monitors.Add(new MonitorOption(i, label) { IsSelected = i == 0 });
+            var m = physical[i];
+            var name = physical.Count == 1 ? "Pantalla" : m.IsPrimary ? "Principal" : $"Pantalla {i + 1}";
+            Monitors.Add(new MonitorOption(m.DeviceName, $"{name} · {m.Width}×{m.Height}"));
         }
+        var pick = Monitors.FirstOrDefault(m => m.DeviceName == selected) ?? Monitors.FirstOrDefault();
+        if (pick is not null) { pick.IsSelected = true; _settings.MirrorDisplay = pick.DeviceName; }
+
+        var virt = outputs.FirstOrDefault(o => o.IsVirtual);
+        VirtualDisplay = virt is null ? null : $"Pantalla virtual lista · {virt.Width}×{virt.Height}";
+    }
+
+    partial void OnModeChanged(ShareMode value) => _settings.Mode = value;
+    partial void OnAudioChanged(bool value) => _settings.Audio = value;
+
+    [RelayCommand] private void SetMode(string value) => Mode = Enum.Parse<ShareMode>(value);
+    [RelayCommand] private void SetAudio(string value) => Audio = value == "on";
+
+    [RelayCommand]
+    private void OpenDisplaySettings() =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:display") { UseShellExecute = true });
+
+    /// <summary>
+    /// Installs the open-source Virtual Display Driver from the official winget repository.
+    /// Windows shows its own administrator prompt; the user stays in control.
+    /// </summary>
+    [RelayCommand]
+    private async Task InstallVirtualDisplay()
+    {
+        IsInstallingDriver = true;
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("winget",
+                "install --id VirtualDrivers.Virtual-Display-Driver -e --accept-source-agreements --accept-package-agreements")
+            { UseShellExecute = true };
+            using var p = System.Diagnostics.Process.Start(psi);
+            if (p is not null) await p.WaitForExitAsync();
+            await Task.Delay(1500);
+            RefreshDisplays();
+        }
+        catch (Exception ex) { SetupError = $"No se pudo instalar la pantalla virtual: {ex.Message}"; }
+        finally { IsInstallingDriver = false; }
     }
 
     public async Task InitializeAsync()
@@ -107,7 +173,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void SelectMonitor(MonitorOption option)
     {
         foreach (var m in Monitors) m.IsSelected = m == option;
-        _settings.MonitorIndex = option.Index;
+        _settings.MirrorDisplay = option.DeviceName;
     }
 
     [RelayCommand] private void SetQuality(string value) => Quality = Enum.Parse<QualityPreset>(value);
@@ -164,7 +230,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
         else
         {
-            var detail = s.State == SessionState.Streaming ? $"En vivo · {s.Profile}" : "Conectando…";
+            var detail = s.State == SessionState.Streaming
+                ? $"{s.DisplayName}{(s.HasAudio ? " con sonido" : "")} · {s.Profile}"
+                : "Conectando…";
             if (existing is null) Devices.Add(new DeviceItem(s.Request.Id, s.Request.Device.Name, s.Request.Device.Kind, detail));
             else existing.Detail = detail;
         }

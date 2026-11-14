@@ -5,6 +5,8 @@ Duplica la pantalla de tu PC con Windows en cualquier iPad, iPhone o navegador d
 - 📱 Escaneas un QR, se abre Safari, aceptas la solicitud en el PC y listo.
 - ⚡ Captura por GPU (DXGI) y codificación por hardware (NVIDIA NVENC · Intel Quick Sync · AMD AMF) con WebRTC: baja latencia, 60 fps.
 - 🔍 Resolución adaptada al panel del dispositivo (Auto) o fija en 1080p / 1440p / **4K**.
+- 🔊 Audio del sistema (WASAPI loopback → Opus 160 kbps estéreo), activable o no.
+- 🖥️ **Modo segunda pantalla**: extiende el escritorio al iPad usando una pantalla virtual que se ajusta sola a la resolución del dispositivo.
 - 🔒 Nada se transmite sin tu aprobación; el video siempre va cifrado (DTLS-SRTP) y no sale de tu red local.
 - 🪟 Interfaz estilo Apple con efecto glass (acrylic de Windows 11).
 
@@ -42,6 +44,13 @@ scripts/               FFmpeg, firewall, íconos
 ```
 Ver [docs/arquitectura.md](docs/arquitectura.md) y [docs/adr](docs/adr).
 
+## Segunda pantalla
+Windows solo puede extender el escritorio a una pantalla que exista. DupliXon usa el
+[Virtual Display Driver](https://github.com/VirtualDrivers/Virtual-Display-Driver) (gratuito, código abierto),
+que se instala con un clic desde la app (`winget install VirtualDrivers.Virtual-Display-Driver`, pide permiso de administrador).
+Al conectar, la pantalla virtual cambia a la resolución más cercana a la del iPad. Ubícala a izquierda/derecha
+desde **Organizar** (Configuración → Pantalla).
+
 ## Pruebas
 ```powershell
 dotnet test
@@ -49,7 +58,6 @@ dotnet test
 Para pruebas E2E automáticas, la variable `DUPLIXON_DEV_AUTO_ACCEPT=1` acepta solicitudes sin mostrar la hoja (solo desarrollo).
 
 ## Hoja de ruta
-- Audio del sistema (WASAPI loopback → Opus)
 - Control táctil del PC desde el iPad (DataChannel)
 - Bitrate adaptativo por estadísticas RTCP y HEVC
 - Descubrimiento mDNS (`duplixon.local`), ícono en bandeja e instalador MSIX

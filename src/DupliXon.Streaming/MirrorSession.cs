@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using DupliXon.Core;
 using DupliXon.Media;
 using SIPSorcery.Net;
@@ -12,28 +12,36 @@ public sealed class MirrorSession : IAsyncDisposable
     private readonly RTCPeerConnection _pc;
     private readonly ScreenStreamer _streamer;
     private readonly Func<SignalMessage, Task> _send;
-    private readonly int _monitorIndex;
+    private readonly DisplayOutput _display;
     private readonly Stopwatch _clock = new();
     private long _lastTicks;
     private int _started;
 
     public ConnectionRequest Request { get; }
+    public bool HasAudio { get; }
+    public string DisplayName => _display.IsVirtual ? "Segunda pantalla" : "Duplicando";
     public StreamProfile Profile { get; }
     public SessionState State { get; private set; } = SessionState.Connecting;
     public event Action<MirrorSession>? StateChanged;
 
-    public MirrorSession(ConnectionRequest request, StreamProfile profile, int monitorIndex,
+    public MirrorSession(ConnectionRequest request, StreamProfile profile, DisplayOutput display, bool withAudio,
         string ffmpeg, EncoderKind encoder, Func<SignalMessage, Task> send)
     {
         Request = request;
         Profile = profile;
         _send = send;
-        _monitorIndex = monitorIndex;
+        _display = display;
+        HasAudio = withAudio;
 
         _pc = new RTCPeerConnection(new RTCConfiguration());
         var h264 = new VideoFormat(VideoCodecsEnum.H264, 96, 90000,
             "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f");
         _pc.addTrack(new MediaStreamTrack(h264, MediaStreamStatusEnum.SendOnly));
+        if (withAudio)
+        {
+            var opus = new AudioFormat(AudioCodecsEnum.OPUS, 111, 48000, 2, "minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1");
+            _pc.addTrack(new MediaStreamTrack(opus, MediaStreamStatusEnum.SendOnly));
+        }
 
         _pc.onicecandidate += c =>
         {
@@ -97,7 +105,7 @@ public sealed class MirrorSession : IAsyncDisposable
     {
         if (Interlocked.Exchange(ref _started, 1) == 1) return;
         _clock.Start();
-        _streamer.Start(Profile, _monitorIndex);
+        _streamer.Start(Profile, _display);
         SetState(SessionState.Streaming);
     }
 
@@ -108,6 +116,12 @@ public sealed class MirrorSession : IAsyncDisposable
         _lastTicks = now;
         var rtpUnits = (uint)Math.Max(1, elapsed * 90_000 / Stopwatch.Frequency);
         _pc.SendVideo(rtpUnits, accessUnit);
+    }
+
+    /// <summary>Sends one 20 ms Opus frame (48 kHz RTP clock).</summary>
+    public void SendAudio(byte[] opusFrame)
+    {
+        if (HasAudio && State == SessionState.Streaming) _pc.SendAudio(960, opusFrame);
     }
 
     private void SetState(SessionState state)
@@ -124,3 +138,4 @@ public sealed class MirrorSession : IAsyncDisposable
         try { _pc.close(); } catch { }
     }
 }
+

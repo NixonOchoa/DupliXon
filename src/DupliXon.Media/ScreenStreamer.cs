@@ -16,16 +16,18 @@ public sealed class ScreenStreamer(string ffmpegPath, EncoderKind encoder) : IAs
     public event Action<byte[]>? FrameEncoded;
     public event Action<string>? Failed;
 
-    public void Start(StreamProfile profile, int monitorIndex)
+    public void Start(StreamProfile profile, DisplayOutput display)
     {
         if (_process is not null) throw new InvalidOperationException("Already streaming.");
 
         var scale = $"scale=w='min(iw\\,{profile.MaxWidth})':h='min(ih\\,{profile.MaxHeight})'" +
                     ":force_original_aspect_ratio=decrease:force_divisible_by=2:flags=bicubic";
         var args = string.Join(' ',
-            "-hide_banner -loglevel error -fflags nobuffer",
-            $"-f lavfi -i ddagrab=output_idx={monitorIndex}:framerate={profile.Fps}:draw_mouse=1",
-            $"-vf \"hwdownload,format=bgra,{scale},format=nv12\"",
+            "-hide_banner -loglevel error",
+            // Capture on the GPU that owns the monitor (virtual displays may live on another adapter).
+            $"-init_hw_device d3d11va=dx:{display.AdapterIndex} -filter_hw_device dx",
+            $"-filter_complex \"ddagrab=output_idx={display.OutputIndex}:framerate={profile.Fps}:draw_mouse=1," +
+            $"hwdownload,format=bgra,{scale},format=nv12[v]\" -map \"[v]\"",
             VideoEncoder.Arguments(encoder, profile),
             "-bsf:v h264_metadata=aud=insert -flush_packets 1 -f h264 pipe:1");
 

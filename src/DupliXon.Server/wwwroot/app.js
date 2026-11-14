@@ -18,7 +18,24 @@
   try { saved = localStorage.getItem('duplixon.name') || ''; } catch { /* private mode */ }
   nameInput.value = saved || kind;
 
-  let ws = null, pc = null, hudTimer = 0;
+  let ws = null, pc = null, hudTimer = 0, hasAudio = false;
+  const soundBtn = $('sound');
+
+  // Try to play with sound; Safari may require a tap, so fall back to muted + a sound button.
+  function startPlayback() {
+    video.muted = !hasAudio;
+    video.play().then(updateSound).catch(() => {
+      video.muted = true;
+      video.play().catch(() => {});
+      updateSound();
+    });
+  }
+
+  function updateSound() {
+    soundBtn.hidden = !hasAudio;
+    soundBtn.textContent = video.muted ? '🔇' : '🔊';
+    soundBtn.classList.toggle('attention', hasAudio && video.muted);
+  }
 
   const setStatus = (text) => { status.textContent = text; };
 
@@ -41,6 +58,10 @@
     try { localStorage.setItem('duplixon.name', name); } catch {}
 
     btn.disabled = true; btn.textContent = 'Conectando…';
+    hasAudio = false;
+    // Unlock media playback inside this tap so sound can start later without another gesture.
+    video.muted = false;
+    video.play().catch(() => {});
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}/ws`);
 
@@ -81,9 +102,12 @@
 
   async function startPeer(sdp) {
     pc = new RTCPeerConnection({ iceServers: [] });
+    const stream = new MediaStream();
+    video.srcObject = stream;
     pc.ontrack = (e) => {
-      video.srcObject = e.streams[0] || new MediaStream([e.track]);
-      video.play().catch(() => {});
+      stream.addTrack(e.track);
+      if (e.track.kind === 'audio') hasAudio = true;
+      startPlayback();
     };
     pc.onicecandidate = (e) => {
       if (e.candidate && ws && ws.readyState === 1)
@@ -111,7 +135,8 @@
   function pokeHud() {
     hud.classList.remove('hidden');
     clearTimeout(hudTimer);
-    hudTimer = setTimeout(() => hud.classList.add('hidden'), 2500);
+    // Keep the HUD visible while the sound still needs a tap.
+    hudTimer = setTimeout(() => { if (!(hasAudio && video.muted)) hud.classList.add('hidden'); }, 2500);
   }
 
   // Live resolution readout once frames arrive.
@@ -126,6 +151,13 @@
     e.stopPropagation();
     try { ws && ws.send(JSON.stringify({ type: 'bye' })); } catch {}
     reset('Desconectado.');
+  });
+  soundBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    video.muted = !video.muted;
+    video.play().catch(() => {});
+    updateSound();
+    pokeHud();
   });
   $('fullscreen').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -142,6 +174,16 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && !viewer.hidden && !lock) navigator.wakeLock?.request('screen').then((l) => (lock = l)).catch(() => {});
   });
+
+  // Diagnostics hook (connection stats from the console / automated tests).
+  window.duplixonStats = async () => {
+    if (!pc) return null;
+    const out = {};
+    (await pc.getStats()).forEach((r) => {
+      if (r.type === 'inbound-rtp') out[r.kind] = { packets: r.packetsReceived, lost: r.packetsLost, fps: r.framesPerSecond, jitter: r.jitter };
+    });
+    return out;
+  };
 
   // Opened from the QR code: connect straight away.
   if (new URLSearchParams(location.search).has('go')) setTimeout(connect, 300);

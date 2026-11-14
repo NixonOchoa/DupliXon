@@ -5,4 +5,9 @@
   <ItemGroup>
     <ProjectReference Include="..\DupliXon.Core\DupliXon.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Concentus" Version="2.2.2" />
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
+  </ItemGroup>
 </Project>

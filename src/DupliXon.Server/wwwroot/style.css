@@ -77,3 +77,5 @@ button { font: inherit; cursor: pointer; border: 0; color: var(--text); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #30d158; box-shadow: 0 0 10px #30d158; }
 .chip { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.14); font-size: 15px; }
 .chip.danger { background: rgba(255,69,58,.85); }
+.chip.attention { background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+.chip[hidden] { display: none; }

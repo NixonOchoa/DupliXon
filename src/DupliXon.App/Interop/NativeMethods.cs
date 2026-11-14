@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -41,44 +41,5 @@ internal static partial class NativeMethods
         var backdrop = BackdropAcrylic;
         return DwmSetWindowAttribute(hwnd, DwmwaSystemBackdropType, ref backdrop, sizeof(int)) == 0;
     }
-
-    // ---- Monitors -------------------------------------------------------------------------
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Rect { public int Left, Top, Right, Bottom; }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct MonitorInfoEx
-    {
-        public int Size;
-        public Rect Monitor;
-        public Rect Work;
-        public uint Flags;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string Device;
-    }
-
-    private delegate bool MonitorEnumProc(nint monitor, nint hdc, ref Rect rect, nint data);
-
-    [DllImport("user32.dll")]
-    private static extern bool EnumDisplayMonitors(nint hdc, nint clip, MonitorEnumProc proc, nint data);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern bool GetMonitorInfo(nint monitor, ref MonitorInfoEx info);
-
-    public sealed record MonitorDescriptor(int Width, int Height, bool IsPrimary);
-
-    /// <summary>Monitors with the primary first, matching DXGI output order on typical setups.</summary>
-    public static IReadOnlyList<MonitorDescriptor> GetMonitors()
-    {
-        var list = new List<MonitorDescriptor>();
-        EnumDisplayMonitors(0, 0, (nint m, nint _, ref Rect _, nint _) =>
-        {
-            var info = new MonitorInfoEx { Size = Marshal.SizeOf<MonitorInfoEx>() };
-            if (GetMonitorInfo(m, ref info))
-                list.Add(new MonitorDescriptor(info.Monitor.Right - info.Monitor.Left,
-                    info.Monitor.Bottom - info.Monitor.Top, (info.Flags & 1) != 0));
-            return true;
-        }, 0);
-        return list.OrderByDescending(m => m.IsPrimary).ToList();
-    }
 }
+

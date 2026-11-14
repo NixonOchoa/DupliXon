@@ -77,6 +77,68 @@
                         <TextBlock Text="{Binding SetupError}" TextWrapping="Wrap" FontSize="14" />
                     </Border>
 
+                    <!-- Mode switch -->
+                    <Border Style="{StaticResource SegmentHost}" Margin="0,0,0,16" CornerRadius="16" Padding="3">
+                        <UniformGrid Rows="1">
+                            <Button Style="{StaticResource SegmentButton}" Padding="10,10" FontSize="14"
+                                    Tag="{Binding Mode, Converter={StaticResource Seg}, ConverterParameter=Mirror}"
+                                    Command="{Binding SetModeCommand}" CommandParameter="Mirror">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8A7;" FontFamily="{StaticResource IconFont}" Margin="0,1,8,0" />
+                                    <TextBlock Text="Duplicar" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource SegmentButton}" Padding="10,10" FontSize="14"
+                                    Tag="{Binding Mode, Converter={StaticResource Seg}, ConverterParameter=Extend}"
+                                    Command="{Binding SetModeCommand}" CommandParameter="Extend">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource IconFont}" Margin="0,1,8,0" />
+                                    <TextBlock Text="Segunda pantalla" />
+                                </StackPanel>
+                            </Button>
+                        </UniformGrid>
+                    </Border>
+
+                    <!-- Second screen: driver missing -->
+                    <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16" BorderBrush="#665AC8FA"
+                            Visibility="{Binding ShowVirtualSetup, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <TextBlock Text="Activa la segunda pantalla" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="0,6,0,14"
+                                       Text="Windows necesita una pantalla virtual para extender el escritorio a tu iPad. Se instala una sola vez (controlador gratuito y de código abierto); Windows te pedirá permiso de administrador." />
+                            <UniformGrid Rows="1">
+                                <Button Style="{StaticResource PrimaryButton}" Margin="0,0,6,0" Command="{Binding InstallVirtualDisplayCommand}">
+                                    <TextBlock>
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="Instalar pantalla virtual" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsInstallingDriver}" Value="True">
+                                                        <Setter Property="Text" Value="Instalando…" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Button>
+                                <Button Style="{StaticResource BaseButton}" Margin="6,0,0,0" Content="Buscar de nuevo" Command="{Binding RefreshDisplaysCommand}" />
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Second screen: ready -->
+                    <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16" Padding="16,12"
+                            Visibility="{Binding ShowVirtualReady, Converter={StaticResource Visible}}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource BaseButton}" Content="Organizar" FontSize="12"
+                                    ToolTip="Abrir Configuración de pantalla de Windows" Command="{Binding OpenDisplaySettingsCommand}" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding VirtualDisplay}" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="Se ajusta sola a la resolución de tu iPad al conectar." Foreground="{StaticResource MutedBrush}" FontSize="12" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
                     <!-- Pair card -->
                     <Border Style="{StaticResource GlassCard}" Padding="24" Visibility="{Binding IsReady, Converter={StaticResource Visible}}">
                         <StackPanel>
@@ -130,8 +192,21 @@
                     <TextBlock Text="AJUSTES" Style="{StaticResource Caption}" Margin="4,22,0,10" />
                     <Border Style="{StaticResource GlassCard}">
                         <StackPanel>
-                            <TextBlock Text="Pantalla a compartir" FontSize="13" Margin="2,0,0,8" />
-                            <Border Style="{StaticResource SegmentHost}">
+                            <TextBlock Text="Sonido" FontSize="13" Margin="2,0,0,8" />
+                            <Border Style="{StaticResource SegmentHost}" Margin="0,0,0,16">
+                                <UniformGrid Rows="1">
+                                    <Button Style="{StaticResource SegmentButton}" Content="En el dispositivo"
+                                            Tag="{Binding Audio, Converter={StaticResource Seg}, ConverterParameter=True}"
+                                            Command="{Binding SetAudioCommand}" CommandParameter="on" />
+                                    <Button Style="{StaticResource SegmentButton}" Content="Solo en el PC"
+                                            Tag="{Binding Audio, Converter={StaticResource Seg}, ConverterParameter=False}"
+                                            Command="{Binding SetAudioCommand}" CommandParameter="off" />
+                                </UniformGrid>
+                            </Border>
+
+                            <TextBlock Text="Pantalla a duplicar" FontSize="13" Margin="2,0,0,8"
+                                       Visibility="{Binding IsMirror, Converter={StaticResource Visible}}" />
+                            <Border Style="{StaticResource SegmentHost}" Visibility="{Binding IsMirror, Converter={StaticResource Visible}}">
                                 <ItemsControl ItemsSource="{Binding Monitors}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
