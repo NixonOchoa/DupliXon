@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:DupliXon.App.ViewModels"
         xmlns:v="clr-namespace:DupliXon.App.Views"
         mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:MainViewModel}"
-        Title="DupliXon" Width="460" Height="800" MinWidth="420" MinHeight="640"
+        Title="DupliXon" Width="1120" Height="660" MinWidth="1060" MinHeight="620"
         WindowStartupLocation="CenterScreen" Background="Transparent"
         Icon="/Assets/DupliXon.ico"
         FontFamily="{StaticResource UiFont}" Foreground="{StaticResource TextBrush}"
@@ -20,11 +20,15 @@
         <v:SegmentStateConverter x:Key="Seg" />
         <v:VisibleWhenConverter x:Key="Visible" />
         <v:VisibleWhenConverter x:Key="Hidden" Invert="True" />
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Margin" Value="2,0,0,7" />
+        </Style>
     </Window.Resources>
 
     <Grid>
         <!-- Tint over the system acrylic; also the fallback look on Windows 10. -->
-        <Border x:Name="Tint">
+        <Border>
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                     <GradientStop Color="#99101830" Offset="0" />
@@ -35,20 +39,26 @@
         </Border>
         <!-- Soft aurora glows behind the glass cards. -->
         <Canvas IsHitTestVisible="False" ClipToBounds="True">
-            <Ellipse Width="360" Height="360" Canvas.Left="-120" Canvas.Top="-90" Opacity="0.55">
+            <Ellipse Width="460" Height="460" Canvas.Left="-140" Canvas.Top="-140" Opacity="0.55">
                 <Ellipse.Fill><RadialGradientBrush><GradientStop Color="#FF2B7CFF" /><GradientStop Color="#002B7CFF" Offset="1" /></RadialGradientBrush></Ellipse.Fill>
             </Ellipse>
-            <Ellipse Width="380" Height="380" Canvas.Left="200" Canvas.Top="300" Opacity="0.45">
+            <Ellipse Width="520" Height="520" Canvas.Left="420" Canvas.Top="260" Opacity="0.45">
                 <Ellipse.Fill><RadialGradientBrush><GradientStop Color="#FF8A4DFF" /><GradientStop Color="#008A4DFF" Offset="1" /></RadialGradientBrush></Ellipse.Fill>
             </Ellipse>
-            <Ellipse Width="340" Height="340" Canvas.Left="-100" Canvas.Top="560" Opacity="0.4">
+            <Ellipse Width="440" Height="440" Canvas.Left="820" Canvas.Top="-120" Opacity="0.4">
                 <Ellipse.Fill><RadialGradientBrush><GradientStop Color="#FF00D1C1" /><GradientStop Color="#0000D1C1" Offset="1" /></RadialGradientBrush></Ellipse.Fill>
             </Ellipse>
         </Canvas>
 
-        <DockPanel>
+        <Grid Margin="24,0,24,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="44" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
             <!-- Title bar -->
-            <Grid DockPanel.Dock="Top" Height="44" Margin="16,0,6,0">
+            <Grid Margin="-8,0,-18,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Image Source="/Assets/logo.png" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality" />
                     <TextBlock Text="DupliXon" Margin="10,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -59,53 +69,123 @@
                 </StackPanel>
             </Grid>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,4,20,20">
-                <StackPanel>
-                    <!-- Hero -->
-                    <TextBlock Text="Duplica tu pantalla" FontSize="28" FontWeight="Bold" Margin="4,6,0,2" />
-                    <StackPanel Orientation="Horizontal" Margin="4,0,0,18">
+            <!-- Header: title, status, mode switch -->
+            <Grid Grid.Row="1" Margin="0,4,0,18">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Comparte tu pantalla" FontSize="28" FontWeight="Bold" />
+                    <StackPanel Orientation="Horizontal" Margin="1,2,0,0">
                         <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
                                  Fill="{StaticResource SuccessBrush}" Visibility="{Binding IsReady, Converter={StaticResource Visible}}" />
                         <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}" FontSize="14" />
                         <TextBlock Text="{Binding EncoderName, StringFormat=' · {0}'}" Foreground="{StaticResource MutedBrush}" FontSize="14"
                                    Visibility="{Binding EncoderName, Converter={StaticResource Visible}}" />
                     </StackPanel>
+                </StackPanel>
+                <Border Style="{StaticResource SegmentHost}" CornerRadius="16" Padding="3" HorizontalAlignment="Right" VerticalAlignment="Center" Width="400">
+                    <UniformGrid Rows="1">
+                        <Button Style="{StaticResource SegmentButton}" Padding="10,10" FontSize="14"
+                                Tag="{Binding Mode, Converter={StaticResource Seg}, ConverterParameter=Mirror}"
+                                Command="{Binding SetModeCommand}" CommandParameter="Mirror">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8A7;" FontFamily="{StaticResource IconFont}" Margin="0,1,8,0" />
+                                <TextBlock Text="Duplicar" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource SegmentButton}" Padding="10,10" FontSize="14"
+                                Tag="{Binding Mode, Converter={StaticResource Seg}, ConverterParameter=Extend}"
+                                Command="{Binding SetModeCommand}" CommandParameter="Extend">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource IconFont}" Margin="0,1,8,0" />
+                                <TextBlock Text="Segunda pantalla" />
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+                </Border>
+            </Grid>
 
-                    <!-- Setup error -->
-                    <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16" BorderBrush="#88FF9F0A"
-                            Visibility="{Binding SetupError, Converter={StaticResource Visible}}">
-                        <TextBlock Text="{Binding SetupError}" TextWrapping="Wrap" FontSize="14" />
-                    </Border>
+            <!-- Three columns: pair · devices/mode · settings -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="320" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="340" />
+                </Grid.ColumnDefinitions>
 
-                    <!-- Mode switch -->
-                    <Border Style="{StaticResource SegmentHost}" Margin="0,0,0,16" CornerRadius="16" Padding="3">
-                        <UniformGrid Rows="1">
-                            <Button Style="{StaticResource SegmentButton}" Padding="10,10" FontSize="14"
-                                    Tag="{Binding Mode, Converter={StaticResource Seg}, ConverterParameter=Mirror}"
-                                    Command="{Binding SetModeCommand}" CommandParameter="Mirror">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE8A7;" FontFamily="{StaticResource IconFont}" Margin="0,1,8,0" />
-                                    <TextBlock Text="Duplicar" />
+                <!-- Pair card -->
+                <Border Style="{StaticResource GlassCard}" Padding="22">
+                    <Grid>
+                        <TextBlock Text="{Binding SetupError}" TextWrapping="Wrap" FontSize="14" VerticalAlignment="Center"
+                                   Visibility="{Binding SetupError, Converter={StaticResource Visible}}" />
+                        <StackPanel VerticalAlignment="Center" Visibility="{Binding IsReady, Converter={StaticResource Visible}}">
+                            <Border Background="White" CornerRadius="22" Padding="16" HorizontalAlignment="Center">
+                                <Image Source="{Binding QrCode}" Width="184" Height="184" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                            </Border>
+                            <TextBlock Text="Escanea con tu iPad o iPhone" FontSize="16" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" Margin="0,18,0,4" TextAlignment="Center" />
+                            <TextBlock Text="Se abrirá Safari. Acepta la solicitud aquí y listo, sin instalar nada."
+                                       Foreground="{StaticResource MutedBrush}" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" />
+                            <Border Style="{StaticResource SegmentHost}" Margin="0,16,0,0" Padding="12,6,6,6">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource BaseButton}" Padding="10,6" Command="{Binding CopyUrlCommand}" ToolTip="Copiar enlace">
+                                        <TextBlock Text="&#xE8C8;" FontFamily="{StaticResource IconFont}" FontSize="13" />
+                                    </Button>
+                                    <TextBlock Text="{Binding Url}" VerticalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Middle: devices + second-screen status -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource GlassCard}" Padding="18,16">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="DISPOSITIVOS CONECTADOS" Style="{StaticResource Caption}" />
+                            <Grid>
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                            Visibility="{Binding HasDevices, Converter={StaticResource Hidden}}">
+                                    <TextBlock Text="&#xE8EA;" FontFamily="{StaticResource IconFont}" FontSize="40" HorizontalAlignment="Center" Opacity="0.5" />
+                                    <TextBlock Text="Ningún dispositivo todavía" Foreground="{StaticResource MutedBrush}" FontSize="14" Margin="0,10,0,0" HorizontalAlignment="Center" />
                                 </StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource SegmentButton}" Padding="10,10" FontSize="14"
-                                    Tag="{Binding Mode, Converter={StaticResource Seg}, ConverterParameter=Extend}"
-                                    Command="{Binding SetModeCommand}" CommandParameter="Extend">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource IconFont}" Margin="0,1,8,0" />
-                                    <TextBlock Text="Segunda pantalla" />
-                                </StackPanel>
-                            </Button>
-                        </UniformGrid>
+                                <ItemsControl ItemsSource="{Binding Devices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DeviceItem}">
+                                            <Border Background="#14FFFFFF" CornerRadius="16" Padding="10" Margin="0,0,0,8">
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="12" Background="{StaticResource AccentGradient}">
+                                                        <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="18"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource DangerButton}" Content="Desconectar" FontSize="12"
+                                                            Command="{Binding DataContext.DisconnectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}" VerticalAlignment="Center" />
+                                                    <StackPanel Margin="12,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+                                                        <TextBlock Text="{Binding Detail}" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </DockPanel>
                     </Border>
 
                     <!-- Second screen: driver missing -->
-                    <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16" BorderBrush="#665AC8FA"
+                    <Border Grid.Row="1" Style="{StaticResource GlassCard}" Margin="0,16,0,0" Padding="18,16" BorderBrush="#665AC8FA"
                             Visibility="{Binding ShowVirtualSetup, Converter={StaticResource Visible}}">
                         <StackPanel>
-                            <TextBlock Text="Activa la segunda pantalla" FontSize="16" FontWeight="SemiBold" />
-                            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="0,6,0,14"
-                                       Text="Windows necesita una pantalla virtual para extender el escritorio a tu iPad. Se instala una sola vez (controlador gratuito y de código abierto); Windows te pedirá permiso de administrador." />
+                            <TextBlock Text="Activa la segunda pantalla" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="12.5" Margin="0,4,0,12"
+                                       Text="Windows necesita una pantalla virtual para extender el escritorio. Se instala una sola vez (gratis y de código abierto) y pedirá permiso de administrador." />
                             <UniformGrid Rows="1">
                                 <Button Style="{StaticResource PrimaryButton}" Margin="0,0,6,0" Command="{Binding InstallVirtualDisplayCommand}">
                                     <TextBlock>
@@ -123,11 +203,13 @@
                                 </Button>
                                 <Button Style="{StaticResource BaseButton}" Margin="6,0,0,0" Content="Buscar de nuevo" Command="{Binding RefreshDisplaysCommand}" />
                             </UniformGrid>
+                            <TextBlock Text="{Binding VirtualHint}" TextWrapping="Wrap" FontSize="12.5" Foreground="#FFFFB340" Margin="2,10,0,0"
+                                       Visibility="{Binding VirtualHint, Converter={StaticResource Visible}}" />
                         </StackPanel>
                     </Border>
 
                     <!-- Second screen: ready -->
-                    <Border Style="{StaticResource GlassCard}" Margin="0,0,0,16" Padding="16,12"
+                    <Border Grid.Row="1" Style="{StaticResource GlassCard}" Margin="0,16,0,0" Padding="18,14"
                             Visibility="{Binding ShowVirtualReady, Converter={StaticResource Visible}}">
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Style="{StaticResource BaseButton}" Content="Organizar" FontSize="12"
@@ -138,75 +220,40 @@
                             </StackPanel>
                         </DockPanel>
                     </Border>
+                </Grid>
 
-                    <!-- Pair card -->
-                    <Border Style="{StaticResource GlassCard}" Padding="24" Visibility="{Binding IsReady, Converter={StaticResource Visible}}">
-                        <StackPanel>
-                            <Border Background="White" CornerRadius="22" Padding="18" HorizontalAlignment="Center">
-                                <Image Source="{Binding QrCode}" Width="190" Height="190" RenderOptions.BitmapScalingMode="NearestNeighbor" />
-                            </Border>
-                            <TextBlock Text="Escanea con la cámara de tu iPad o iPhone" FontSize="16" FontWeight="SemiBold"
-                                       HorizontalAlignment="Center" Margin="0,18,0,4" TextAlignment="Center" TextWrapping="Wrap" />
-                            <TextBlock Text="Se abrirá Safari. Acepta la solicitud aquí y listo — sin instalar nada."
-                                       Foreground="{StaticResource MutedBrush}" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" />
-                            <Border Style="{StaticResource SegmentHost}" Margin="0,16,0,0" Padding="12,6,6,6">
-                                <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource BaseButton}" Padding="10,6" Command="{Binding CopyUrlCommand}" ToolTip="Copiar enlace">
-                                        <TextBlock Text="&#xE8C8;" FontFamily="{StaticResource IconFont}" FontSize="13" />
-                                    </Button>
-                                    <TextBlock Text="{Binding Url}" VerticalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="13" />
-                                </DockPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
+                <!-- Settings -->
+                <Border Grid.Column="4" Style="{StaticResource GlassCard}" Padding="18,16">
+                    <StackPanel>
+                        <TextBlock Text="AJUSTES" Style="{StaticResource Caption}" />
 
-                    <!-- Devices -->
-                    <TextBlock Text="DISPOSITIVOS CONECTADOS" Style="{StaticResource Caption}" Margin="4,22,0,10" />
-                    <Border Style="{StaticResource GlassCard}" Padding="8">
-                        <Grid>
-                            <TextBlock Text="Ningún dispositivo todavía" Foreground="{StaticResource MutedBrush}" FontSize="14"
-                                       Margin="12,10" Visibility="{Binding HasDevices, Converter={StaticResource Hidden}}" />
-                            <ItemsControl ItemsSource="{Binding Devices}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type vm:DeviceItem}">
-                                        <DockPanel Margin="8,6">
-                                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="12" Background="{StaticResource AccentGradient}">
-                                                <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="18"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            </Border>
-                                            <Button DockPanel.Dock="Right" Style="{StaticResource DangerButton}" Content="Desconectar" FontSize="12"
-                                                    Command="{Binding DataContext.DisconnectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding}" VerticalAlignment="Center" />
-                                            <StackPanel Margin="12,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
-                                                <TextBlock Text="{Binding Detail}" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Grid>
-                    </Border>
+                        <TextBlock Text="Control desde el dispositivo" Style="{StaticResource Label}" />
+                        <Border Style="{StaticResource SegmentHost}" Margin="0,0,0,12">
+                            <UniformGrid Rows="1">
+                                <Button Style="{StaticResource SegmentButton}" Content="Ratón y teclado"
+                                        Tag="{Binding AllowControl, Converter={StaticResource Seg}, ConverterParameter=True}"
+                                        Command="{Binding SetControlCommand}" CommandParameter="on" />
+                                <Button Style="{StaticResource SegmentButton}" Content="Solo ver"
+                                        Tag="{Binding AllowControl, Converter={StaticResource Seg}, ConverterParameter=False}"
+                                        Command="{Binding SetControlCommand}" CommandParameter="off" />
+                            </UniformGrid>
+                        </Border>
 
-                    <!-- Settings -->
-                    <TextBlock Text="AJUSTES" Style="{StaticResource Caption}" Margin="4,22,0,10" />
-                    <Border Style="{StaticResource GlassCard}">
-                        <StackPanel>
-                            <TextBlock Text="Sonido" FontSize="13" Margin="2,0,0,8" />
-                            <Border Style="{StaticResource SegmentHost}" Margin="0,0,0,16">
-                                <UniformGrid Rows="1">
-                                    <Button Style="{StaticResource SegmentButton}" Content="En el dispositivo"
-                                            Tag="{Binding Audio, Converter={StaticResource Seg}, ConverterParameter=True}"
-                                            Command="{Binding SetAudioCommand}" CommandParameter="on" />
-                                    <Button Style="{StaticResource SegmentButton}" Content="Solo en el PC"
-                                            Tag="{Binding Audio, Converter={StaticResource Seg}, ConverterParameter=False}"
-                                            Command="{Binding SetAudioCommand}" CommandParameter="off" />
-                                </UniformGrid>
-                            </Border>
+                        <TextBlock Text="Sonido" Style="{StaticResource Label}" />
+                        <Border Style="{StaticResource SegmentHost}" Margin="0,0,0,12">
+                            <UniformGrid Rows="1">
+                                <Button Style="{StaticResource SegmentButton}" Content="En el dispositivo"
+                                        Tag="{Binding Audio, Converter={StaticResource Seg}, ConverterParameter=True}"
+                                        Command="{Binding SetAudioCommand}" CommandParameter="on" />
+                                <Button Style="{StaticResource SegmentButton}" Content="Solo en el PC"
+                                        Tag="{Binding Audio, Converter={StaticResource Seg}, ConverterParameter=False}"
+                                        Command="{Binding SetAudioCommand}" CommandParameter="off" />
+                            </UniformGrid>
+                        </Border>
 
-                            <TextBlock Text="Pantalla a duplicar" FontSize="13" Margin="2,0,0,8"
-                                       Visibility="{Binding IsMirror, Converter={StaticResource Visible}}" />
-                            <Border Style="{StaticResource SegmentHost}" Visibility="{Binding IsMirror, Converter={StaticResource Visible}}">
+                        <StackPanel Visibility="{Binding IsMirror, Converter={StaticResource Visible}}">
+                            <TextBlock Text="Pantalla a duplicar" Style="{StaticResource Label}" />
+                            <Border Style="{StaticResource SegmentHost}" Margin="0,0,0,12">
                                 <ItemsControl ItemsSource="{Binding Monitors}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
@@ -221,47 +268,47 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </Border>
-
-                            <TextBlock Text="Resolución" FontSize="13" Margin="2,16,0,8" />
-                            <Border Style="{StaticResource SegmentHost}">
-                                <UniformGrid Rows="1">
-                                    <Button Style="{StaticResource SegmentButton}" Content="Auto" ToolTip="Nativa del dispositivo"
-                                            Tag="{Binding Quality, Converter={StaticResource Seg}, ConverterParameter=Auto}"
-                                            Command="{Binding SetQualityCommand}" CommandParameter="Auto" />
-                                    <Button Style="{StaticResource SegmentButton}" Content="1080p"
-                                            Tag="{Binding Quality, Converter={StaticResource Seg}, ConverterParameter=FullHd}"
-                                            Command="{Binding SetQualityCommand}" CommandParameter="FullHd" />
-                                    <Button Style="{StaticResource SegmentButton}" Content="1440p"
-                                            Tag="{Binding Quality, Converter={StaticResource Seg}, ConverterParameter=QuadHd}"
-                                            Command="{Binding SetQualityCommand}" CommandParameter="QuadHd" />
-                                    <Button Style="{StaticResource SegmentButton}" Content="4K"
-                                            Tag="{Binding Quality, Converter={StaticResource Seg}, ConverterParameter=UltraHd}"
-                                            Command="{Binding SetQualityCommand}" CommandParameter="UltraHd" />
-                                </UniformGrid>
-                            </Border>
-
-                            <TextBlock Text="Fluidez" FontSize="13" Margin="2,16,0,8" />
-                            <Border Style="{StaticResource SegmentHost}">
-                                <UniformGrid Rows="1">
-                                    <Button Style="{StaticResource SegmentButton}" Content="60 fps · Fluido"
-                                            Tag="{Binding Fps, Converter={StaticResource Seg}, ConverterParameter=60}"
-                                            Command="{Binding SetFpsCommand}" CommandParameter="60" />
-                                    <Button Style="{StaticResource SegmentButton}" Content="30 fps · Ahorro"
-                                            Tag="{Binding Fps, Converter={StaticResource Seg}, ConverterParameter=30}"
-                                            Command="{Binding SetFpsCommand}" CommandParameter="30" />
-                                </UniformGrid>
-                            </Border>
-                            <TextBlock Text="Los cambios se aplican a la próxima conexión. La resolución nunca supera la de tu pantalla."
-                                       Foreground="{StaticResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="2,12,0,0" />
                         </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
-        </DockPanel>
+
+                        <TextBlock Text="Resolución" Style="{StaticResource Label}" />
+                        <Border Style="{StaticResource SegmentHost}" Margin="0,0,0,12">
+                            <UniformGrid Rows="1">
+                                <Button Style="{StaticResource SegmentButton}" Content="Auto" ToolTip="Nativa del dispositivo"
+                                        Tag="{Binding Quality, Converter={StaticResource Seg}, ConverterParameter=Auto}"
+                                        Command="{Binding SetQualityCommand}" CommandParameter="Auto" />
+                                <Button Style="{StaticResource SegmentButton}" Content="1080p"
+                                        Tag="{Binding Quality, Converter={StaticResource Seg}, ConverterParameter=FullHd}"
+                                        Command="{Binding SetQualityCommand}" CommandParameter="FullHd" />
+                                <Button Style="{StaticResource SegmentButton}" Content="1440p"
+                                        Tag="{Binding Quality, Converter={StaticResource Seg}, ConverterParameter=QuadHd}"
+                                        Command="{Binding SetQualityCommand}" CommandParameter="QuadHd" />
+                                <Button Style="{StaticResource SegmentButton}" Content="4K"
+                                        Tag="{Binding Quality, Converter={StaticResource Seg}, ConverterParameter=UltraHd}"
+                                        Command="{Binding SetQualityCommand}" CommandParameter="UltraHd" />
+                            </UniformGrid>
+                        </Border>
+
+                        <TextBlock Text="Fluidez" Style="{StaticResource Label}" />
+                        <Border Style="{StaticResource SegmentHost}">
+                            <UniformGrid Rows="1">
+                                <Button Style="{StaticResource SegmentButton}" Content="60 fps"
+                                        Tag="{Binding Fps, Converter={StaticResource Seg}, ConverterParameter=60}"
+                                        Command="{Binding SetFpsCommand}" CommandParameter="60" />
+                                <Button Style="{StaticResource SegmentButton}" Content="30 fps"
+                                        Tag="{Binding Fps, Converter={StaticResource Seg}, ConverterParameter=30}"
+                                        Command="{Binding SetFpsCommand}" CommandParameter="30" />
+                            </UniformGrid>
+                        </Border>
+                        <TextBlock Text="Se aplican a la próxima conexión."
+                                   Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="2,10,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
 
         <!-- Incoming request sheet -->
         <Grid Visibility="{Binding PendingRequest, Converter={StaticResource Visible}}" Background="#8C000000">
-            <Border Style="{StaticResource GlassCard}" Width="360" Padding="28" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Border Style="{StaticResource GlassCard}" Width="380" Padding="28" VerticalAlignment="Center" HorizontalAlignment="Center">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0.6,1">
                         <GradientStop Color="#E6283048" Offset="0" />
@@ -283,3 +330,4 @@
         </Grid>
     </Grid>
 </Window>
+

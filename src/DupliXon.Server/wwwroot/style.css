@@ -65,7 +65,17 @@ button { font: inherit; cursor: pointer; border: 0; color: var(--text); }
 .primary.waiting { animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { filter: brightness(1.25); } }
 
-#viewer { position: fixed; inset: 0; background: #000; }
+#viewer { position: fixed; inset: 0; background: #000; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+.handle {
+  position: fixed; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  width: 64px; height: 18px; border-radius: 999px; padding: 0; opacity: .55; transition: opacity .3s ease;
+}
+.handle::after { content: ''; position: absolute; left: 50%; top: 50%; width: 30px; height: 4px; margin: -2px 0 0 -15px; border-radius: 2px; background: rgba(255,255,255,.8); }
+.handle.hidden { opacity: 0; pointer-events: none; }
+
+/* Off-screen but focusable, so iOS opens the on-screen keyboard. */
+.kbd { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
 #video { width: 100%; height: 100%; object-fit: contain; background: #000; }
 
 .hud {

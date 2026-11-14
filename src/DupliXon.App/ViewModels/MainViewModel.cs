@@ -64,6 +64,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [NotifyPropertyChangedFor(nameof(ShowVirtualSetup), nameof(ShowVirtualReady))]
     private string? _virtualDisplay;
     [ObservableProperty] private bool _isInstallingDriver;
+    [ObservableProperty] private string? _virtualHint;
 
     public bool IsMirror => Mode == ShareMode.Mirror;
     public bool IsExtend => Mode == ShareMode.Extend;
@@ -98,11 +99,19 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (pick is not null) { pick.IsSelected = true; _settings.MirrorDisplay = pick.DeviceName; }
 
         var virt = outputs.FirstOrDefault(o => o.IsVirtual);
-        VirtualDisplay = virt is null ? null : $"Pantalla virtual lista · {virt.Width}×{virt.Height}";
+        VirtualDisplay = virt is not null
+            ? $"Pantalla virtual activa · {virt.Width}×{virt.Height}"
+            : DupliXon.Media.VirtualDisplay.VirtualDisplayManager.DriverInstalled
+                ? "Pantalla virtual lista · se crea al conectar"
+                : null;
     }
 
     partial void OnModeChanged(ShareMode value) => _settings.Mode = value;
     partial void OnAudioChanged(bool value) => _settings.Audio = value;
+
+    [ObservableProperty] private bool _allowControl = true;
+    partial void OnAllowControlChanged(bool value) => _settings.AllowControl = value;
+    [RelayCommand] private void SetControl(string value) => AllowControl = value == "on";
 
     [RelayCommand] private void SetMode(string value) => Mode = Enum.Parse<ShareMode>(value);
     [RelayCommand] private void SetAudio(string value) => Audio = value == "on";
@@ -112,7 +121,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:display") { UseShellExecute = true });
 
     /// <summary>
-    /// Installs the open-source Virtual Display Driver from the official winget repository.
+    /// Installs the Parsec Virtual Display Driver (a real IddCx driver) from the official winget repository.
     /// Windows shows its own administrator prompt; the user stays in control.
     /// </summary>
     [RelayCommand]
@@ -122,14 +131,19 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         try
         {
             var psi = new System.Diagnostics.ProcessStartInfo("winget",
-                "install --id VirtualDrivers.Virtual-Display-Driver -e --accept-source-agreements --accept-package-agreements")
+                $"install --id {DupliXon.Media.VirtualDisplay.VirtualDisplayManager.WingetId} -e --accept-source-agreements --accept-package-agreements")
             { UseShellExecute = true };
             using var p = System.Diagnostics.Process.Start(psi);
             if (p is not null) await p.WaitForExitAsync();
-            await Task.Delay(1500);
+            // The driver registers its device a few seconds after setup finishes.
+            for (var i = 0; i < 10 && !DupliXon.Media.VirtualDisplay.VirtualDisplayManager.DriverInstalled; i++)
+                await Task.Delay(1000);
             RefreshDisplays();
+            if (VirtualDisplay is null)
+                VirtualHint = "La instalación no terminó. Si Windows pidió permiso de administrador, acéptalo e inténtalo de nuevo.";
+            else VirtualHint = null;
         }
-        catch (Exception ex) { SetupError = $"No se pudo instalar la pantalla virtual: {ex.Message}"; }
+        catch (Exception ex) { VirtualHint = $"No se pudo instalar la pantalla virtual: {ex.Message}"; }
         finally { IsInstallingDriver = false; }
     }
 
@@ -266,3 +280,4 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (_server is not null) await _server.DisposeAsync();
     }
 }
+

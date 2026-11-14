@@ -18,8 +18,17 @@
   try { saved = localStorage.getItem('duplixon.name') || ''; } catch { /* private mode */ }
   nameInput.value = saved || kind;
 
-  let ws = null, pc = null, hudTimer = 0, hasAudio = false;
-  const soundBtn = $('sound');
+  let ws = null, pc = null, hudTimer = 0, hasAudio = false, channel = null;
+  const soundBtn = $('sound'), keyboardBtn = $('keyboard'), handle = $('handle');
+
+  // Remote mouse & keyboard over the "input" data channel (when the PC allows control).
+  const canControl = () => channel && channel.readyState === 'open';
+  const remote = window.DupliXonInput.attach({
+    surface: viewer,
+    video,
+    keyboardInput: $('kbd'),
+    send: (msg) => { if (canControl()) channel.send(JSON.stringify(msg)); },
+  });
 
   // Try to play with sound; Safari may require a tap, so fall back to muted + a sound button.
   function startPlayback() {
@@ -42,7 +51,9 @@
   function reset(message) {
     try { pc && pc.close(); } catch {}
     try { ws && ws.close(); } catch {}
-    pc = null; ws = null;
+    remote.releaseAll();
+    pc = null; ws = null; channel = null;
+    keyboardBtn.hidden = true;
     viewer.hidden = true; lobby.hidden = false;
     btn.disabled = false; btn.classList.remove('waiting'); btn.textContent = 'Conectar';
     if (message) setStatus(message);
@@ -109,6 +120,12 @@
       if (e.track.kind === 'audio') hasAudio = true;
       startPlayback();
     };
+    pc.ondatachannel = (e) => {
+      if (e.channel.label !== 'input') return;
+      channel = e.channel;
+      channel.onopen = () => { keyboardBtn.hidden = false; };
+      channel.onclose = () => { channel = null; keyboardBtn.hidden = true; };
+    };
     pc.onicecandidate = (e) => {
       if (e.candidate && ws && ws.readyState === 1)
         ws.send(JSON.stringify({ type: 'ice', candidate: e.candidate.candidate, sdpMid: e.candidate.sdpMid, sdpMLineIndex: e.candidate.sdpMLineIndex }));
@@ -134,9 +151,14 @@
 
   function pokeHud() {
     hud.classList.remove('hidden');
+    handle.classList.add('hidden');
     clearTimeout(hudTimer);
     // Keep the HUD visible while the sound still needs a tap.
-    hudTimer = setTimeout(() => { if (!(hasAudio && video.muted)) hud.classList.add('hidden'); }, 2500);
+    hudTimer = setTimeout(() => {
+      if (hasAudio && video.muted) return;
+      hud.classList.add('hidden');
+      handle.classList.remove('hidden');
+    }, 3000);
   }
 
   // Live resolution readout once frames arrive.
@@ -146,7 +168,14 @@
 
   btn.addEventListener('click', connect);
   nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connect(); });
-  viewer.addEventListener('pointerdown', pokeHud);
+  // With remote control on, taps belong to the PC; the small handle brings the controls back.
+  viewer.addEventListener('pointerdown', (e) => { if (!canControl() && !e.target.closest('.hud')) pokeHud(); });
+  handle.addEventListener('pointerdown', (e) => { e.stopPropagation(); pokeHud(); });
+  keyboardBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    remote.toggleKeyboard();
+    pokeHud();
+  });
   $('stop').addEventListener('click', (e) => {
     e.stopPropagation();
     try { ws && ws.send(JSON.stringify({ type: 'bye' })); } catch {}

@@ -29,6 +29,7 @@ public sealed class DupliXonServer : IAsyncDisposable
     private readonly ConcurrentDictionary<Guid, MirrorSession> _sessions = new();
     private readonly SystemAudioCapture _audio = new();
     private readonly object _audioGate = new();
+    private readonly DupliXon.Media.VirtualDisplay.VirtualDisplayManager _virtual = new();
     private WebApplication? _app;
 
     public DupliXonServer(string ffmpeg, EncoderKind encoder, MirrorSettings settings, int port = DefaultPort)
@@ -59,12 +60,15 @@ public sealed class DupliXonServer : IAsyncDisposable
     }
 
     /// <summary>Monitor a new session should capture, or null when Extend mode has no virtual display.</summary>
-    private DisplayOutput? ResolveDisplay(DeviceInfo device)
+    private DisplayOutput? ResolveDisplay(DeviceInfo device, out bool acquiredVirtual)
     {
+        acquiredVirtual = false;
         var outputs = DisplayCatalog.GetOutputs();
         if (Settings.Mode == ShareMode.Extend)
         {
-            var target = outputs.FirstOrDefault(o => o.IsVirtual) ?? outputs.FirstOrDefault(o => !o.IsPrimary);
+            var target = _virtual.Acquire();
+            acquiredVirtual = target is not null;
+            target ??= outputs.FirstOrDefault(o => !o.IsPrimary);
             if (target is null) return null;
             // Size the extra screen like the device's panel so it is pixel-perfect.
             var (w, h) = device.NativePixels;
@@ -133,6 +137,7 @@ public sealed class DupliXonServer : IAsyncDisposable
         }
 
         MirrorSession? session = null;
+        var usesVirtual = false;
         try
         {
             await foreach (var msg in ReadMessagesAsync(socket, abort))
@@ -154,15 +159,22 @@ public sealed class DupliXonServer : IAsyncDisposable
 
                     if (!accepted) { await Send(new SignalMessage { Type = "rejected" }); break; }
 
-                    var display = ResolveDisplay(device);
+                    var (display, acquired) = await Task.Run(() => (ResolveDisplay(device, out var a), a));
+                    usesVirtual = acquired;
                     if (display is null)
                     {
-                        await Send(new SignalMessage { Type = "error", Message = "El PC no tiene una pantalla virtual para usar como segunda pantalla." });
+                        await Send(new SignalMessage { Type = "error", Message = "Activa la segunda pantalla en DupliXon (instala la pantalla virtual) y vuelve a conectar." });
                         break;
                     }
 
                     var profile = StreamProfile.For(device, Settings.Quality, Settings.Fps);
                     session = new MirrorSession(request, profile, display, Settings.Audio, _ffmpeg, _encoder, Send);
+                    session.InputReceived += (s, data) =>
+                    {
+                        if (!Settings.AllowControl) return;
+                        try { DupliXon.Media.Input.InputInjector.Handle(s.Display, data); }
+                        catch (Exception ex) { Log.Error("input", ex); }
+                    };
                     session.StateChanged += s =>
                     {
                         if (s.State == SessionState.Ended) _sessions.TryRemove(s.Request.Id, out _);
@@ -188,6 +200,7 @@ public sealed class DupliXonServer : IAsyncDisposable
                 _sessions.TryRemove(session.Request.Id, out _);
                 await session.DisposeAsync();
             }
+            if (usesVirtual) _virtual.Release(); // unplugs the virtual monitor when nobody uses it
         }
     }
 
@@ -240,6 +253,7 @@ public sealed class DupliXonServer : IAsyncDisposable
     {
         foreach (var id in _sessions.Keys.ToArray()) await DisconnectAsync(id).ConfigureAwait(false);
         _audio.Dispose();
+        _virtual.Dispose();
         if (_app is not null) await _app.DisposeAsync().ConfigureAwait(false);
     }
 }

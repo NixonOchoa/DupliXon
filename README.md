@@ -46,10 +46,24 @@ Ver [docs/arquitectura.md](docs/arquitectura.md) y [docs/adr](docs/adr).
 
 ## Segunda pantalla
 Windows solo puede extender el escritorio a una pantalla que exista. DupliXon usa el
-[Virtual Display Driver](https://github.com/VirtualDrivers/Virtual-Display-Driver) (gratuito, código abierto),
-que se instala con un clic desde la app (`winget install VirtualDrivers.Virtual-Display-Driver`, pide permiso de administrador).
-Al conectar, la pantalla virtual cambia a la resolución más cercana a la del iPad. Ubícala a izquierda/derecha
-desde **Organizar** (Configuración → Pantalla).
+**Parsec Virtual Display Driver** (gratuito), que se instala con un clic desde la app
+(`winget install Parsec.ParsecVDD`, pide permiso de administrador). DupliXon conecta la pantalla virtual
+al empezar la sesión y la retira al terminar; adopta la resolución disponible más cercana a la del iPad.
+Ubícala a izquierda/derecha desde **Organizar** (Configuración → Pantalla).
+
+## Control desde el iPad
+Con **Ratón y teclado** activado en Ajustes:
+| Gesto | Acción en el PC |
+|---|---|
+| Tocar | Clic |
+| Mantener pulsado / tocar con dos dedos | Clic derecho |
+| Arrastrar con un dedo | Arrastrar (seleccionar, mover ventanas) |
+| Deslizar con dos dedos | Desplazar (scroll) |
+| Trackpad / ratón del iPad | Puntero, clics y scroll |
+| Botón ⌨︎ | Teclado en pantalla |
+| Teclado físico | Teclas; ⌘ funciona como Ctrl (⌘C, ⌘V…) |
+
+Desliza la barrita superior para mostrar los controles. Windows no deja controlar ventanas que se ejecutan como administrador.
 
 ## Pruebas
 ```powershell

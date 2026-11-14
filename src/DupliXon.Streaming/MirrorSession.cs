@@ -24,6 +24,12 @@ public sealed class MirrorSession : IAsyncDisposable
     public SessionState State { get; private set; } = SessionState.Connecting;
     public event Action<MirrorSession>? StateChanged;
 
+    /// <summary>Raw input event (JSON) received from the device over the "input" data channel.</summary>
+    public event Action<MirrorSession, byte[]>? InputReceived;
+
+    /// <summary>The monitor this session shows; input coordinates are mapped onto it.</summary>
+    public DisplayOutput Display => _display;
+
     public MirrorSession(ConnectionRequest request, StreamProfile profile, DisplayOutput display, bool withAudio,
         string ffmpeg, EncoderKind encoder, Func<SignalMessage, Task> send)
     {
@@ -73,6 +79,15 @@ public sealed class MirrorSession : IAsyncDisposable
 
     public async Task StartAsync()
     {
+        // Ordered, reliable channel for touch / mouse / keyboard events from the device.
+        var input = await _pc.createDataChannel("input", new RTCDataChannelInit { ordered = true }).ConfigureAwait(false);
+        input.onopen += () => Log.Info($"input channel open ({Request.Device.Name})");
+        input.onmessage += (_, _, data) =>
+        {
+            if (State != SessionState.Streaming) Log.Info($"input ignored, state {State}");
+            if (State == SessionState.Streaming) InputReceived?.Invoke(this, data);
+        };
+
         var offer = _pc.createOffer();
         await _pc.setLocalDescription(offer).ConfigureAwait(false);
         await _send(new SignalMessage { Type = "offer", Sdp = offer.sdp, Info = Profile.ToString() }).ConfigureAwait(false);

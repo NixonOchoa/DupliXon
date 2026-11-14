@@ -37,12 +37,16 @@
     <video id="video" playsinline muted autoplay></video>
     <div id="hud" class="glass hud">
       <span class="dot"></span><span id="hudText">En vivo</span>
+      <button id="keyboard" class="chip" title="Teclado" hidden>⌨︎</button>
       <button id="sound" class="chip" title="Sonido" hidden>🔇</button>
       <button id="fullscreen" class="chip" title="Pantalla completa">⤢</button>
       <button id="stop" class="chip danger" title="Desconectar">✕</button>
     </div>
+    <button id="handle" class="handle glass hidden" aria-label="Mostrar controles"></button>
+    <input id="kbd" class="kbd" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Teclado">
   </div>
 
+  <script src="input.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
