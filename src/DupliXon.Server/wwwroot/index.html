@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DupliXon">
+  <meta name="theme-color" content="#05060a">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <title>DupliXon</title>
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <main id="lobby" class="stage">
+    <section class="glass card">
+      <img class="logo" src="icon.svg" alt="">
+      <h1>DupliXon</h1>
+      <p class="sub" id="status">Duplica la pantalla de tu PC aquí, sin instalar nada.</p>
+
+      <label class="field">
+        <span>Nombre de este dispositivo</span>
+        <input id="name" maxlength="40" autocomplete="off" spellcheck="false">
+      </label>
+
+      <button id="connect" class="primary">Conectar</button>
+      <p class="meta" id="meta"></p>
+    </section>
+  </main>
+
+  <div id="viewer" hidden>
+    <video id="video" playsinline muted autoplay></video>
+    <div id="hud" class="glass hud">
+      <span class="dot"></span><span id="hudText">En vivo</span>
+      <button id="fullscreen" class="chip" title="Pantalla completa">⤢</button>
+      <button id="stop" class="chip danger" title="Desconectar">✕</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
