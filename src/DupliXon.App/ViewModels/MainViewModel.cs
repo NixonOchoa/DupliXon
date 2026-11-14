@@ -75,6 +75,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         Devices.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasDevices));
         RefreshDisplays();
+        // Development only: start in a given mode for automated end-to-end tests.
+        if (Enum.TryParse<ShareMode>(Environment.GetEnvironmentVariable("DUPLIXON_DEV_MODE"), out var devMode)) Mode = devMode;
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) =>
             Application.Current?.Dispatcher.BeginInvoke(RefreshDisplays);
     }

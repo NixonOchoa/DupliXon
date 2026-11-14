@@ -41,8 +41,9 @@ public sealed class ScreenStreamer(string ffmpegPath, EncoderKind encoder) : IAs
 
         _process.ErrorDataReceived += (_, e) =>
         {
-            if (!string.IsNullOrWhiteSpace(e.Data)) Debug.WriteLine($"[ffmpeg] {e.Data}");
+            if (!string.IsNullOrWhiteSpace(e.Data)) Log.Error($"ffmpeg: {e.Data}");
         };
+        Log.Info($"capture {display.DeviceName} (adapter {display.AdapterIndex}, output {display.OutputIndex}, {display.Width}x{display.Height}) -> {profile}");
         _process.BeginErrorReadLine();
 
         _cts = new CancellationTokenSource();

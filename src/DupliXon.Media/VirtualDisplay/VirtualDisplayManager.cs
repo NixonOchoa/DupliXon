@@ -20,6 +20,9 @@ public sealed class VirtualDisplayManager : IDisposable
 
     public static bool DriverInstalled => ParsecVdd.IsInstalled;
 
+    /// <summary>True when exactly one session uses the virtual monitor, so it may pick the resolution.</summary>
+    public bool IsSoleUser { get { lock (_gate) return _users == 1; } }
+
     /// <summary>Returns a virtual monitor to stream, creating it if needed. Pair every success with <see cref="Release"/>.</summary>
     public DisplayOutput? Acquire()
     {
@@ -34,10 +37,15 @@ public sealed class VirtualDisplayManager : IDisposable
             Log.Info($"Parsec VDD: added display #{_index}");
             if (_index < 0) return null;
 
-            // Windows needs a moment to attach the new monitor to the desktop.
+            // The new monitor is connected but not on the desktop yet: extend onto it.
+            Thread.Sleep(1200);
+            var extended = DisplayModes.ExtendDesktop();
+            Log.Info($"Parsec VDD: extend desktop -> {extended}");
+
             for (var i = 0; i < 40; i++)
             {
                 Thread.Sleep(150);
+                if (i == 15) DisplayModes.ExtendDesktop(); // retry once if Windows was still settling
                 var created = DisplayCatalog.GetOutputs().FirstOrDefault(o => o.IsVirtual);
                 if (created is not null) { _users++; return created; }
             }

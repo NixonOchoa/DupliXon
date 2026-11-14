@@ -70,9 +70,11 @@ public sealed class DupliXonServer : IAsyncDisposable
             acquiredVirtual = target is not null;
             target ??= outputs.FirstOrDefault(o => !o.IsPrimary);
             if (target is null) return null;
-            // Size the extra screen like the device's panel so it is pixel-perfect.
+            // Size the extra screen like the device's panel so it is pixel-perfect — but only for the
+            // first viewer: changing the mode under a running capture would break the other session.
             var (w, h) = device.NativePixels;
-            if (w > 0 && h > 0 && DisplayModes.MatchResolution(target.DeviceName, w, h) is not null)
+            var mayResize = !acquiredVirtual || _virtual.IsSoleUser;
+            if (mayResize && w > 0 && h > 0 && DisplayModes.MatchResolution(target.DeviceName, w, h) is not null)
                 return DisplayCatalog.GetOutputs().FirstOrDefault(o => o.DeviceName == target.DeviceName) ?? target;
             return target;
         }

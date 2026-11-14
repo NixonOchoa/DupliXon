@@ -44,20 +44,43 @@ public static class DisplayModes
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern bool EnumDisplayDevices(string? device, uint devNum, ref DisplayDevice dd, uint flags);
 
-    /// <summary>True when the monitor attached to this display reports itself as virtual.</summary>
+    [DllImport("user32.dll")]
+    private static extern int SetDisplayConfig(uint pathCount, nint paths, uint modeCount, nint modes, uint flags);
+
+    /// <summary>
+    /// Extends the desktop onto every connected monitor. A freshly plugged virtual display is
+    /// connected but not attached to the desktop until the topology is set to "extend".
+    /// </summary>
+    public static bool ExtendDesktop()
+    {
+        const uint SdcTopologyExtend = 0x4, SdcApply = 0x80;
+        return SetDisplayConfig(0, 0, 0, 0, SdcApply | SdcTopologyExtend) == 0;
+    }
+
+    /// <summary>True when the display (its adapter or its monitor) reports itself as virtual.</summary>
     public static bool IsVirtualMonitor(string deviceName)
     {
+        var adapter = new DisplayDevice { cb = Marshal.SizeOf<DisplayDevice>() };
+        for (uint i = 0; EnumDisplayDevices(null, i, ref adapter, 0); i++)
+        {
+            if (adapter.DeviceName == deviceName && LooksVirtual(adapter.DeviceString)) return true;
+            adapter.cb = Marshal.SizeOf<DisplayDevice>();
+        }
+
         var dd = new DisplayDevice { cb = Marshal.SizeOf<DisplayDevice>() };
         for (uint i = 0; EnumDisplayDevices(deviceName, i, ref dd, 0); i++)
         {
-            var text = $"{dd.DeviceString} {dd.DeviceID}";
-            if (text.Contains("virtual", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("MTT", StringComparison.Ordinal) || text.Contains("Parsec", StringComparison.OrdinalIgnoreCase))
-                return true;
+            if (LooksVirtual($"{dd.DeviceString} {dd.DeviceID}")) return true;
             dd.cb = Marshal.SizeOf<DisplayDevice>();
         }
         return false;
     }
+
+    private static bool LooksVirtual(string text) =>
+        text.Contains("virtual", StringComparison.OrdinalIgnoreCase) ||
+        text.Contains("Parsec", StringComparison.OrdinalIgnoreCase) ||
+        text.Contains("PSCCDD", StringComparison.OrdinalIgnoreCase) ||
+        text.Contains("MTT", StringComparison.Ordinal);
 
     /// <summary>
     /// Switches the display to the supported mode that best matches the target size: same aspect ratio first,

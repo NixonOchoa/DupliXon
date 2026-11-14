@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using DupliXon.Core;
 using DupliXon.Media;
 using SIPSorcery.Net;
@@ -12,7 +12,7 @@ public sealed class MirrorSession : IAsyncDisposable
     private readonly RTCPeerConnection _pc;
     private readonly ScreenStreamer _streamer;
     private readonly Func<SignalMessage, Task> _send;
-    private readonly DisplayOutput _display;
+    private DisplayOutput _display;
     private readonly Stopwatch _clock = new();
     private long _lastTicks;
     private int _started;
@@ -70,12 +70,36 @@ public sealed class MirrorSession : IAsyncDisposable
 
         _streamer = new ScreenStreamer(ffmpeg, encoder);
         _streamer.FrameEncoded += OnFrame;
-        _streamer.Failed += msg =>
-        {
-            _ = _send(new SignalMessage { Type = "error", Message = msg });
-            SetState(SessionState.Ended);
-        };
+        _streamer.Failed += msg => _ = Task.Run(() => RecoverAsync(msg));
     }
+
+    /// <summary>
+    /// The capture stops when Windows changes the display (resolution, rotation, a monitor plugged in).
+    /// Restart it transparently; give up only if it keeps failing.
+    /// </summary>
+    private async Task RecoverAsync(string reason)
+    {
+        if (State == SessionState.Ended) return;
+        var now = DateTime.UtcNow;
+        if (now - _restartWindow > TimeSpan.FromSeconds(30)) { _restartWindow = now; _restarts = 0; }
+        if (++_restarts > 5)
+        {
+            Log.Error($"capture keeps failing, ending session: {reason}");
+            await _send(new SignalMessage { Type = "error", Message = reason }).ConfigureAwait(false);
+            SetState(SessionState.Ended);
+            return;
+        }
+
+        Log.Info($"capture restart #{_restarts}: {reason}");
+        await _streamer.DisposeAsync().ConfigureAwait(false);
+        await Task.Delay(700).ConfigureAwait(false);
+        if (State == SessionState.Ended) return;
+        _display = DisplayCatalog.GetOutputs().FirstOrDefault(o => o.DeviceName == _display.DeviceName) ?? _display;
+        _streamer.Start(Profile, _display);
+    }
+
+    private int _restarts;
+    private DateTime _restartWindow;
 
     public async Task StartAsync()
     {
