@@ -10,7 +10,20 @@ Duplica la pantalla de tu PC con Windows en cualquier iPad, iPhone o navegador d
 - 🔒 Nada se transmite sin tu aprobación; el video siempre va cifrado (DTLS-SRTP) y no sale de tu red local.
 - 🪟 Interfaz estilo Apple con efecto glass (acrylic de Windows 11).
 
-## Requisitos
+## Instalar
+Descarga y ejecuta **`DupliXon-Setup-1.0.0.exe`**. El instalador incluye todo lo necesario
+(no hace falta instalar .NET ni FFmpeg), crea los accesos directos, permite DupliXon en el firewall
+para redes privadas y, opcionalmente, instala la pantalla virtual para el modo segunda pantalla.
+
+Para generar el instalador desde el código:
+```powershell
+./scripts/build-installer.ps1   # → artifacts/DupliXon-Setup-<versión>.exe
+```
+
+## Créditos
+Creado por **Nixon Ochoa** · njochoa8@gmail.com · [github.com/NixonOchoa](https://github.com/NixonOchoa)
+
+## Requisitos para desarrollar
 - Windows 10 21H2+ (efecto glass completo en Windows 11 22H2+)
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
 - FFmpeg ≥ 6.1 → `./scripts/install-ffmpeg.ps1` (usa winget)

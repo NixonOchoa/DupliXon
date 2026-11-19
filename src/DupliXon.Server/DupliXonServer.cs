@@ -98,17 +98,18 @@ public sealed class DupliXonServer : IAsyncDisposable
         var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
         {
             ContentRootPath = AppContext.BaseDirectory,
-            WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot"),
         });
+        var webFiles = new ManifestEmbeddedFileProvider(typeof(DupliXonServer).Assembly, "wwwroot");
         builder.WebHost.UseUrls($"http://0.0.0.0:{Port}");
         builder.Logging.ClearProviders();
 
         _app = builder.Build();
         _app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(15) });
-        _app.UseDefaultFiles();
+        _app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = webFiles });
         _app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = new PhysicalFileProvider(Path.Combine(AppContext.BaseDirectory, "wwwroot")),
+            FileProvider = webFiles,
+            ContentTypeProvider = ContentTypes(),
             OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache",
         });
         _app.Map("/ws", HandleSocketAsync);
@@ -227,6 +228,13 @@ public sealed class DupliXonServer : IAsyncDisposable
             catch (JsonException) { }
             if (msg is not null) yield return msg;
         }
+    }
+
+    private static Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider ContentTypes()
+    {
+        var p = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+        p.Mappings[".webmanifest"] = "application/manifest+json";
+        return p;
     }
 
     private static string Clean(string? value, string fallback)

@@ -1,12 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- The receiver web app ships inside the assembly, so DupliXon is a single .exe. -->
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.11" />
     <ProjectReference Include="..\DupliXon.Streaming\DupliXon.Streaming.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="wwwroot\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="wwwroot" />
+    <EmbeddedResource Include="wwwroot\**\*" />
   </ItemGroup>
 </Project>

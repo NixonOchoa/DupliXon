@@ -64,6 +64,7 @@
                     <TextBlock Text="DupliXon" Margin="10,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource TitleBarButton}" Content="&#xE946;" FontSize="13" Click="Credits_Click" ToolTip="Créditos" />
                     <Button Style="{StaticResource TitleBarButton}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Minimizar" />
                     <Button Style="{StaticResource TitleBarButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Cerrar" />
                 </StackPanel>
@@ -304,6 +305,46 @@
                     </StackPanel>
                 </Border>
             </Grid>
+        </Grid>
+
+        <!-- Credits sheet -->
+        <Grid x:Name="CreditsSheet" Visibility="Collapsed" Background="#8C000000" MouseLeftButtonDown="CreditsBackdrop_Click">
+            <Border Style="{StaticResource GlassCard}" Width="400" Padding="30" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    MouseLeftButtonDown="CreditsCard_Click">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0.6,1">
+                        <GradientStop Color="#E6283048" Offset="0" />
+                        <GradientStop Color="#E61A1A2E" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+                <StackPanel>
+                    <Image Source="/Assets/logo.png" Width="72" Height="72" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="DupliXon" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,14,0,0" />
+                    <TextBlock x:Name="VersionText" Foreground="{StaticResource MutedBrush}" FontSize="13" HorizontalAlignment="Center" Margin="0,2,0,22" />
+
+                    <TextBlock Text="CREADO POR" Style="{StaticResource Caption}" HorizontalAlignment="Center" Margin="0,0,0,6" />
+                    <TextBlock Text="Nixon Ochoa" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+
+                    <StackPanel Margin="0,18,0,0">
+                        <Button Style="{StaticResource BaseButton}" Margin="0,0,0,8" Padding="14,10" Click="Email_Click" HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE715;" FontFamily="{StaticResource IconFont}" FontSize="15" Margin="0,1,10,0" />
+                                <TextBlock Text="njochoa8@gmail.com" FontSize="14" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource BaseButton}" Padding="14,10" Click="GitHub_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE943;" FontFamily="{StaticResource IconFont}" FontSize="15" Margin="0,1,10,0" />
+                                <TextBlock Text="github.com/NixonOchoa" FontSize="14" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <TextBlock Foreground="{StaticResource MutedBrush}" FontSize="11.5" TextWrapping="Wrap" TextAlignment="Center" Margin="0,20,0,16"
+                               Text="Usa FFmpeg (LGPL/GPL), SIPSorcery, NAudio, Concentus y QRCoder. La segunda pantalla usa Parsec Virtual Display Driver." />
+                    <Button Style="{StaticResource PrimaryButton}" Content="Cerrar" Click="CloseCredits_Click" />
+                </StackPanel>
+            </Border>
         </Grid>
 
         <!-- Incoming request sheet -->
