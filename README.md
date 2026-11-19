@@ -1,71 +1,49 @@
-# DupliXon
+<p align="center">
+  <img src="src/DupliXon.App/Assets/logo.png" width="110" alt="DupliXon">
+</p>
 
-Duplica la pantalla de tu PC con Windows en cualquier iPad, iPhone o navegador de tu Wi-Fi, **sin instalar nada en el dispositivo**.
+<h1 align="center">DupliXon</h1>
 
-- 📱 Escaneas un QR, se abre Safari, aceptas la solicitud en el PC y listo.
-- ⚡ Captura por GPU (DXGI) y codificación por hardware (NVIDIA NVENC · Intel Quick Sync · AMD AMF) con WebRTC: baja latencia, 60 fps.
-- 🔍 Resolución adaptada al panel del dispositivo (Auto) o fija en 1080p / 1440p / **4K**.
-- 🔊 Audio del sistema (WASAPI loopback → Opus 160 kbps estéreo), activable o no.
-- 🖥️ **Modo segunda pantalla**: extiende el escritorio al iPad usando una pantalla virtual que se ajusta sola a la resolución del dispositivo.
-- 🔒 Nada se transmite sin tu aprobación; el video siempre va cifrado (DTLS-SRTP) y no sale de tu red local.
-- 🪟 Interfaz estilo Apple con efecto glass (acrylic de Windows 11).
+<p align="center">
+  Duplica o extiende la pantalla de tu PC con Windows en tu iPad o iPhone por Wi-Fi,<br>
+  <b>sin instalar nada en el dispositivo</b>.
+</p>
+
+<p align="center">
+  <a href="https://github.com/NixonOchoa/DupliXon/releases/latest/download/DupliXon-Setup.exe">
+    <img src="https://img.shields.io/badge/Descargar%20para%20Windows-DupliXon--Setup.exe-2b7cff?style=for-the-badge&logo=windows&logoColor=white" alt="Descargar DupliXon para Windows">
+  </a>
+</p>
 
 ## Instalar
-Descarga y ejecuta **`DupliXon-Setup-1.0.0.exe`**. El instalador incluye todo lo necesario
-(no hace falta instalar .NET ni FFmpeg), crea los accesos directos, permite DupliXon en el firewall
-para redes privadas y, opcionalmente, instala la pantalla virtual para el modo segunda pantalla.
 
-Para generar el instalador desde el código:
-```powershell
-./scripts/build-installer.ps1   # → artifacts/DupliXon-Setup-<versión>.exe
-```
+1. **[Descarga DupliXon-Setup.exe](https://github.com/NixonOchoa/DupliXon/releases/latest/download/DupliXon-Setup.exe)**
+2. Ábrelo y sigue el asistente. Si Windows SmartScreen avisa, elige *Más información → Ejecutar de todas formas*.
+3. ¡Listo! Abre **DupliXon** desde el menú Inicio o el escritorio.
 
-## Créditos
-Creado por **Nixon Ochoa** · njochoa8@gmail.com · [github.com/NixonOchoa](https://github.com/NixonOchoa)
-
-## Requisitos para desarrollar
-- Windows 10 21H2+ (efecto glass completo en Windows 11 22H2+)
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- FFmpeg ≥ 6.1 → `./scripts/install-ffmpeg.ps1` (usa winget)
-- PC y dispositivo en la misma red Wi-Fi, marcada como **privada**
-
-## Ejecutar
-```powershell
-./scripts/install-ffmpeg.ps1          # una vez
-dotnet run --project src/DupliXon.App
-```
-La primera vez Windows preguntará si permites el acceso a la red: elige **Redes privadas**.
-O bien ejecuta como administrador `./scripts/setup-firewall.ps1` tras compilar en Release.
+El instalador trae todo lo necesario: no tienes que instalar nada más.
 
 ## Usar
+
 1. Abre DupliXon en el PC.
-2. En el iPad/iPhone, apunta la cámara al QR y toca el enlace.
+2. En el iPad o iPhone, apunta la cámara al código QR y toca el enlace.
 3. Acepta la solicitud en el PC.
 4. Opcional: en Safari, *Compartir → Añadir a pantalla de inicio* para tenerlo como app a pantalla completa.
 
-## Estructura
-```
-src/
-  DupliXon.Core        Modelos, perfiles de resolución, parser H.264 Annex-B
-  DupliXon.Media       FFmpeg: captura DXGI + encoder por hardware
-  DupliXon.Streaming   Sesiones WebRTC (SIPSorcery)
-  DupliXon.Server      Kestrel: receptor web (wwwroot) + señalización WebSocket
-  DupliXon.App         App WPF (MVVM, CommunityToolkit) con tema glass
-tests/DupliXon.Core.Tests
-docs/                  Arquitectura y ADRs
-scripts/               FFmpeg, firewall, íconos
-```
-Ver [docs/arquitectura.md](docs/arquitectura.md) y [docs/adr](docs/adr).
+El PC y el dispositivo deben estar en la misma red Wi-Fi.
 
-## Segunda pantalla
-Windows solo puede extender el escritorio a una pantalla que exista. DupliXon usa el
-**Parsec Virtual Display Driver** (gratuito), que se instala con un clic desde la app
-(`winget install Parsec.ParsecVDD`, pide permiso de administrador). DupliXon conecta la pantalla virtual
-al empezar la sesión y la retira al terminar; adopta la resolución disponible más cercana a la del iPad.
-Ubícala a izquierda/derecha desde **Organizar** (Configuración → Pantalla).
+## Funciones
 
-## Control desde el iPad
-Con **Ratón y teclado** activado en Ajustes:
+- 📱 Escaneas un QR, se abre Safari, aceptas la solicitud en el PC y listo.
+- ⚡ Fluido a 60 fps con aceleración por hardware (NVIDIA, Intel, AMD).
+- 🔍 Resolución adaptada a tu dispositivo, o fija en 1080p / 1440p / **4K**.
+- 🔊 El sonido del PC se escucha en el dispositivo.
+- 🖥️ **Segunda pantalla**: usa el iPad como un monitor extra.
+- 🖱️ **Controla el PC desde el iPad** con toques, trackpad y teclado.
+- 🔒 Nada se transmite sin tu aprobación; todo va cifrado y no sale de tu red.
+
+### Control desde el iPad
+
 | Gesto | Acción en el PC |
 |---|---|
 | Tocar | Clic |
@@ -76,15 +54,52 @@ Con **Ratón y teclado** activado en Ajustes:
 | Botón ⌨︎ | Teclado en pantalla |
 | Teclado físico | Teclas; ⌘ funciona como Ctrl (⌘C, ⌘V…) |
 
-Desliza la barrita superior para mostrar los controles. Windows no deja controlar ventanas que se ejecutan como administrador.
+Toca la barrita superior para mostrar los controles.
 
-## Pruebas
+### Segunda pantalla
+
+Elige **Segunda pantalla** en DupliXon. La primera vez pulsa **Instalar pantalla virtual** (o marca esa opción en el instalador).
+La pantalla extra aparece al conectar el iPad y desaparece al desconectarlo. Ubícala a la izquierda o derecha con **Organizar**.
+
+## Créditos
+
+Creado por **Nixon Ochoa** · njochoa8@gmail.com · [github.com/NixonOchoa](https://github.com/NixonOchoa)
+
+---
+
+<details>
+<summary><b>Para desarrolladores</b></summary>
+
+### Requisitos
+- Windows 10 21H2+ · [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- FFmpeg ≥ 6.1 → `./scripts/install-ffmpeg.ps1`
+
+### Ejecutar desde el código
+```powershell
+dotnet run --project src/DupliXon.App
+```
+
+### Generar el instalador
+```powershell
+./scripts/build-installer.ps1   # → artifacts/DupliXon-Setup-<versión>.exe
+```
+
+### Pruebas
 ```powershell
 dotnet test
 ```
-Para pruebas E2E automáticas, la variable `DUPLIXON_DEV_AUTO_ACCEPT=1` acepta solicitudes sin mostrar la hoja (solo desarrollo).
 
-## Hoja de ruta
-- Control táctil del PC desde el iPad (DataChannel)
-- Bitrate adaptativo por estadísticas RTCP y HEVC
-- Descubrimiento mDNS (`duplixon.local`), ícono en bandeja e instalador MSIX
+### Estructura
+```
+src/
+  DupliXon.Core        Modelos, perfiles de resolución, parser H.264 Annex-B
+  DupliXon.Media       FFmpeg (captura DXGI + encoder por hardware), audio, entrada, pantalla virtual
+  DupliXon.Streaming   Sesiones WebRTC (SIPSorcery)
+  DupliXon.Server      Kestrel: receptor web incrustado + señalización WebSocket
+  DupliXon.App         App WPF (MVVM, CommunityToolkit) con tema glass
+installer/             Script de Inno Setup
+tests/                 Pruebas unitarias
+docs/                  Arquitectura y ADRs
+```
+Ver [docs/arquitectura.md](docs/arquitectura.md) y [docs/adr](docs/adr).
+</details>
