@@ -40,16 +40,21 @@ public static class VideoEncoder
     internal static string Arguments(EncoderKind kind, StreamProfile p)
     {
         var b = p.BitrateKbps;
-        // Keyframe every 2 s: big enough to avoid frequent bitrate spikes (which grow the receiver's
-        // jitter buffer), small enough to recover quickly from Wi-Fi loss. Small VBV buffer = low delay.
-        var gop = p.Fps * 2;
-        var rate = $"-b:v {b}k -maxrate {b}k -bufsize {b / 4}k -bf 0 -g {gop} -profile:v high";
+        // Intra refresh: instead of periodic full keyframes (big bursts that Wi-Fi drops, freezing the
+        // picture until the next one), a moving band of intra blocks repaints the image every ~1/3 s.
+        // Frame sizes stay flat and any loss heals in a fraction of a second.
+        var cycle = Math.Max(10, p.Fps / 3);
+        var longGop = p.Fps * 10;
+        var rate = $"-b:v {b}k -maxrate {b}k -bufsize {b / 4}k -bf 0 -profile:v high";
         return kind switch
         {
-            EncoderKind.Nvidia => $"-c:v h264_nvenc -preset p1 -tune ull -zerolatency 1 -delay 0 -rc cbr {rate}",
-            EncoderKind.IntelQuickSync => $"-c:v h264_qsv -low_power 1 -preset veryfast -async_depth 1 -look_ahead 0 {rate}",
-            EncoderKind.Amd => $"-c:v h264_amf -usage ultralowlatency -rc cbr {rate}",
-            _ => $"-c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p {rate}",
+            EncoderKind.Nvidia =>
+                $"-c:v h264_nvenc -preset p1 -tune ull -zerolatency 1 -delay 0 -rc cbr -g {longGop} -intra-refresh 1 {rate}",
+            EncoderKind.IntelQuickSync =>
+                $"-c:v h264_qsv -low_power 1 -preset veryfast -async_depth 1 -look_ahead 0 -g {longGop} " +
+                $"-int_ref_type vertical -int_ref_cycle_size {cycle} {rate}",
+            EncoderKind.Amd => $"-c:v h264_amf -usage ultralowlatency -rc cbr -g {p.Fps} {rate}",
+            _ => $"-c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g {longGop} -intra-refresh 1 {rate}",
         };
     }
 }

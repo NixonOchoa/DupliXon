@@ -59,7 +59,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsMirror), nameof(IsExtend), nameof(ShowVirtualSetup), nameof(ShowVirtualReady))]
     private ShareMode _mode = ShareMode.Mirror;
-    [ObservableProperty] private bool _audio = true;
+    [ObservableProperty] private bool _audio;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowVirtualSetup), nameof(ShowVirtualReady))]
     private string? _virtualDisplay;

@@ -13,6 +13,19 @@ public sealed class ScreenStreamer(string ffmpegPath, EncoderKind encoder) : IAs
     private CancellationTokenSource? _cts;
     private Task? _pump;
 
+    /// <summary>Set when the zero-copy GPU pipeline fails on this PC; later sessions use the CPU path.</summary>
+    private static volatile bool GpuPathBroken;
+    private bool _gpuPath;
+    private DateTime _startedAt;
+
+    /// <summary>Largest even size with the source aspect ratio that fits the box, never upscaling.</summary>
+    public static (int Width, int Height) Fit(int srcW, int srcH, int boxW, int boxH)
+    {
+        if (srcW <= 0 || srcH <= 0) return (boxW & ~1, boxH & ~1);
+        var s = Math.Min(1.0, Math.Min((double)boxW / srcW, (double)boxH / srcH));
+        return (Math.Max(2, (int)(srcW * s)) & ~1, Math.Max(2, (int)(srcH * s)) & ~1);
+    }
+
     public event Action<byte[]>? FrameEncoded;
     public event Action<string>? Failed;
 
@@ -20,14 +33,23 @@ public sealed class ScreenStreamer(string ffmpegPath, EncoderKind encoder) : IAs
     {
         if (_process is not null) throw new InvalidOperationException("Already streaming.");
 
-        var scale = $"scale=w='min(iw\\,{profile.MaxWidth})':h='min(ih\\,{profile.MaxHeight})'" +
-                    ":force_original_aspect_ratio=decrease:force_divisible_by=2:flags=bicubic";
+        var (w, h) = Fit(display.Width, display.Height, profile.MaxWidth, profile.MaxHeight);
+        var grab = $"ddagrab=output_idx={display.OutputIndex}:framerate={profile.Fps}:draw_mouse=1";
+        _gpuPath = encoder == EncoderKind.IntelQuickSync && !GpuPathBroken;
+
+        // Intel: the frame never leaves the GPU (capture → scale → encode, zero copies).
+        // Others: copy to RAM and scale on the CPU.
+        var graph = _gpuPath
+            ? $"-init_hw_device qsv=qs@dx -filter_hw_device dx -filter_complex \"{grab}," +
+              $"hwmap=derive_device=qsv,format=qsv,vpp_qsv=w={w}:h={h}:format=nv12[v]\""
+            : $"-filter_hw_device dx -filter_complex \"{grab},hwdownload,format=bgra," +
+              $"scale={w}:{h}:flags=bicubic,format=nv12[v]\"";
+
         var args = string.Join(' ',
             "-hide_banner -loglevel error",
             // Capture on the GPU that owns the monitor (virtual displays may live on another adapter).
-            $"-init_hw_device d3d11va=dx:{display.AdapterIndex} -filter_hw_device dx",
-            $"-filter_complex \"ddagrab=output_idx={display.OutputIndex}:framerate={profile.Fps}:draw_mouse=1," +
-            $"hwdownload,format=bgra,{scale},format=nv12[v]\" -map \"[v]\"",
+            $"-init_hw_device d3d11va=dx:{display.AdapterIndex}",
+            graph, "-map \"[v]\"",
             VideoEncoder.Arguments(encoder, profile),
             // FLV frames each frame with its length, so every frame is forwarded the moment it is encoded.
             "-flush_packets 1 -flvflags no_duration_filesize -f flv pipe:1");
@@ -47,6 +69,7 @@ public sealed class ScreenStreamer(string ffmpegPath, EncoderKind encoder) : IAs
         Log.Info($"capture {display.DeviceName} (adapter {display.AdapterIndex}, output {display.OutputIndex}, {display.Width}x{display.Height}) -> {profile}");
         _process.BeginErrorReadLine();
 
+        _startedAt = DateTime.UtcNow;
         _cts = new CancellationTokenSource();
         var output = _process.StandardOutput.BaseStream;
         var token = _cts.Token;
@@ -56,7 +79,15 @@ public sealed class ScreenStreamer(string ffmpegPath, EncoderKind encoder) : IAs
             {
                 await foreach (var frame in new FlvH264Reader(output).ReadAsync(token))
                     FrameEncoded?.Invoke(frame);
-                if (!token.IsCancellationRequested) Failed?.Invoke("La captura de pantalla se detuvo inesperadamente.");
+                if (!token.IsCancellationRequested)
+                {
+                    if (_gpuPath && DateTime.UtcNow - _startedAt < TimeSpan.FromSeconds(5))
+                    {
+                        GpuPathBroken = true; // the automatic restart will use the CPU path
+                        Log.Error("GPU capture path failed at start; falling back to CPU path");
+                    }
+                    Failed?.Invoke("La captura de pantalla se detuvo inesperadamente.");
+                }
             }
             catch (OperationCanceledException) { }
             catch (Exception ex) when (!token.IsCancellationRequested) { Failed?.Invoke(ex.Message); }

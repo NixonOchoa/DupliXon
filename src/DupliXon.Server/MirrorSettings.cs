@@ -18,7 +18,8 @@ public sealed class MirrorSettings
     public string? MirrorDisplay { get; set; }
     public QualityPreset Quality { get; set; } = QualityPreset.Auto;
     public int Fps { get; set; } = 60;
-    public bool Audio { get; set; } = true;
+    /// <summary>Off by default: sound stays on the PC and the video path stays as light as possible.</summary>
+    public bool Audio { get; set; }
     /// <summary>Lets receivers drive the mouse and keyboard (applies live, also to open sessions).</summary>
     public bool AllowControl { get; set; } = true;
 }
