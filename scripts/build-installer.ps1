@@ -32,6 +32,9 @@ if (-not $iscc) { throw 'Inno Setup 6 no encontrado: winget install JRSoftware.I
 & $iscc /Q "/DAppVersion=$version" "/DFfmpegDir=$Ffmpeg" installer\DupliXon.iss
 if ($LASTEXITCODE) { throw 'ISCC failed' }
 
+# Stable name used by the README's "latest release" download link.
+Copy-Item "artifacts\DupliXon-Setup-$version.exe" "artifacts\DupliXon-Setup.exe" -Force
+
 Get-Item "artifacts\DupliXon-Setup-$version.exe" | ForEach-Object {
     Write-Host ("Listo: {0} ({1:N0} MB)" -f $_.FullName, ($_.Length / 1MB)) -ForegroundColor Green
 }
