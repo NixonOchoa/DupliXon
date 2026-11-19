@@ -123,9 +123,14 @@
                             <Border Background="White" CornerRadius="22" Padding="16" HorizontalAlignment="Center">
                                 <Image Source="{Binding QrCode}" Width="184" Height="184" RenderOptions.BitmapScalingMode="NearestNeighbor" />
                             </Border>
-                            <TextBlock Text="Escanea con tu iPad o iPhone" FontSize="16" FontWeight="SemiBold"
-                                       HorizontalAlignment="Center" Margin="0,18,0,4" TextAlignment="Center" />
-                            <TextBlock Text="Se abrirá Safari. Acepta la solicitud aquí y listo, sin instalar nada."
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,18,0,4">
+                                <Border Background="{StaticResource SuccessBrush}" CornerRadius="8" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center"
+                                        Visibility="{Binding IsUsb, Converter={StaticResource Visible}}">
+                                    <TextBlock Text="USB" FontSize="11" FontWeight="Bold" Foreground="#0B1A10" />
+                                </Border>
+                                <TextBlock Text="{Binding LinkTitle}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding LinkHint}"
                                        Foreground="{StaticResource MutedBrush}" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" />
                             <Border Style="{StaticResource SegmentHost}" Margin="0,16,0,0" Padding="12,6,6,6">
                                 <DockPanel>
@@ -143,6 +148,7 @@
                 <Grid Grid.Column="2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
@@ -177,6 +183,15 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </Grid>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- USB cable notice -->
+                    <Border Grid.Row="2" Style="{StaticResource GlassCard}" Margin="0,16,0,0" Padding="18,12" BorderBrush="#6630D158"
+                            Visibility="{Binding UsbNotice, Converter={StaticResource Visible}}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="&#xE88E;" FontFamily="{StaticResource IconFont}" FontSize="20" Margin="0,0,12,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding UsbNotice}" TextWrapping="Wrap" FontSize="12.5" VerticalAlignment="Center" />
                         </DockPanel>
                     </Border>
 

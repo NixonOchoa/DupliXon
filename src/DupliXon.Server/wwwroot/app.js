@@ -116,6 +116,9 @@
     const stream = new MediaStream();
     video.srcObject = stream;
     pc.ontrack = (e) => {
+      // Ask the browser to play frames as soon as they arrive instead of buffering for smoothness.
+      try { e.receiver.jitterBufferTarget = 0; } catch {}
+      try { e.receiver.playoutDelayHint = 0; } catch {}
       stream.addTrack(e.track);
       if (e.track.kind === 'audio') hasAudio = true;
       startPlayback();
@@ -137,10 +140,22 @@
       else if (s === 'closed' || s === 'disconnected') reset('El PC dejó de compartir la pantalla.');
     };
 
-    await pc.setRemoteDescription({ type: 'offer', sdp });
+    await pc.setRemoteDescription({ type: 'offer', sdp: unsyncAudio(sdp) });
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     ws.send(JSON.stringify({ type: 'answer', sdp: pc.localDescription.sdp }));
+  }
+
+  // Browsers lip-sync tracks of the same stream by holding video back to match the (more buffered)
+  // audio. For screen mirroring, responsiveness matters more: give audio its own stream id.
+  function unsyncAudio(sdp) {
+    const sections = sdp.split(/(?=\r?\nm=)/);
+    return sections.map((s) => {
+      if (!/^\r?\nm=audio/.test(s)) return s;
+      return s
+        .replace(/a=msid:\S+/g, 'a=msid:duplixon-audio audio')
+        .replace(/(a=ssrc:\d+ msid:)\S+/g, '$1duplixon-audio');
+    }).join('');
   }
 
   function showViewer() {
@@ -209,7 +224,11 @@
     if (!pc) return null;
     const out = {};
     (await pc.getStats()).forEach((r) => {
-      if (r.type === 'inbound-rtp') out[r.kind] = { packets: r.packetsReceived, lost: r.packetsLost, fps: r.framesPerSecond, jitter: r.jitter };
+      if (r.type === 'inbound-rtp') out[r.kind] = {
+        packets: r.packetsReceived, lost: r.packetsLost, fps: r.framesPerSecond, jitter: r.jitter,
+        bufferMs: r.jitterBufferEmittedCount ? Math.round(1000 * r.jitterBufferDelay / r.jitterBufferEmittedCount) : null,
+      };
+      if (r.type === 'candidate-pair' && r.nominated) out.rttMs = Math.round(1000 * (r.currentRoundTripTime || 0));
     });
     return out;
   };

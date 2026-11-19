@@ -40,12 +40,14 @@ public static class VideoEncoder
     internal static string Arguments(EncoderKind kind, StreamProfile p)
     {
         var b = p.BitrateKbps;
-        var gop = p.Fps; // one keyframe per second: fast join and quick recovery from packet loss
-        var rate = $"-b:v {b}k -maxrate {b}k -bufsize {b / 2}k -bf 0 -g {gop} -profile:v high";
+        // Keyframe every 2 s: big enough to avoid frequent bitrate spikes (which grow the receiver's
+        // jitter buffer), small enough to recover quickly from Wi-Fi loss. Small VBV buffer = low delay.
+        var gop = p.Fps * 2;
+        var rate = $"-b:v {b}k -maxrate {b}k -bufsize {b / 4}k -bf 0 -g {gop} -profile:v high";
         return kind switch
         {
-            EncoderKind.Nvidia => $"-c:v h264_nvenc -preset p1 -tune ull -zerolatency 1 -rc cbr {rate}",
-            EncoderKind.IntelQuickSync => $"-c:v h264_qsv -preset veryfast -async_depth 1 -look_ahead 0 {rate}",
+            EncoderKind.Nvidia => $"-c:v h264_nvenc -preset p1 -tune ull -zerolatency 1 -delay 0 -rc cbr {rate}",
+            EncoderKind.IntelQuickSync => $"-c:v h264_qsv -low_power 1 -preset veryfast -async_depth 1 -look_ahead 0 {rate}",
             EncoderKind.Amd => $"-c:v h264_amf -usage ultralowlatency -rc cbr {rate}",
             _ => $"-c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p {rate}",
         };

@@ -176,10 +176,62 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             return;
         }
 
-        Url = _server.Url;
-        QrCode = RenderQr(Url + "?go=1");
         IsReady = true;
         StatusText = "Listo para compartir";
+        RefreshLink(force: true);
+
+        // Watch for an iPhone/iPad plugged in by cable (and network changes) to switch the QR code.
+        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += (_, _) =>
+            Application.Current?.Dispatcher.BeginInvoke(() => RefreshLink());
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        timer.Tick += (_, _) => RefreshLink();
+        timer.Start();
+    }
+
+    // ---- Connection link: Wi-Fi or USB cable ----
+    [ObservableProperty] private bool _isUsb;
+    [ObservableProperty] private string _linkTitle = "Escanea con tu iPad o iPhone";
+    [ObservableProperty] private string _linkHint = "Se abrirá Safari. Acepta la solicitud aquí y listo, sin instalar nada.";
+    [ObservableProperty] private string? _usbNotice;
+    private UsbState _usb = UsbState.None;
+    private bool _refreshing;
+
+    private async void RefreshLink(bool force = false)
+    {
+        if (_server is null || _refreshing) return;
+        _refreshing = true;
+        try
+        {
+            var usb = await Task.Run(UsbLink.Detect);
+            if (!force && usb == _usb) return;
+            _usb = usb;
+
+            IsUsb = usb.Ready;
+            var url = usb.Ready ? _server.UrlFor(usb.Address!) : _server.Url;
+            if (url != Url) { Url = url; QrCode = RenderQr(Url + "?go=1"); }
+
+            if (usb.Ready)
+            {
+                LinkTitle = "Conectado por cable USB";
+                LinkHint = "Menor latencia que el Wi-Fi. Escanea el código con el dispositivo conectado.";
+            }
+            else
+            {
+                LinkTitle = "Escanea con tu iPad o iPhone";
+                LinkHint = "Se abrirá Safari. Acepta la solicitud aquí y listo, sin instalar nada.";
+            }
+
+            UsbNotice = usb switch
+            {
+                { Ready: true } => "Mientras uses el cable, tu PC puede usar los datos móviles del dispositivo para Internet.",
+                { DriverMissing: true } =>
+                    $"Detecté un {usb.DeviceName} por cable. Instala «Apple Devices» desde Microsoft Store para poder usar el cable.",
+                { Plugged: true } =>
+                    $"Detecté un {usb.DeviceName} por cable. Para usarlo con menor latencia, activa en él Ajustes → Compartir Internet. (Los iPad solo Wi-Fi no lo tienen: usa el Wi-Fi.)",
+                _ => null,
+            };
+        }
+        finally { _refreshing = false; }
     }
 
     partial void OnQualityChanged(QualityPreset value) => _settings.Quality = value;
@@ -246,8 +298,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
         else
         {
+            var via = s.Request.RemoteAddress.StartsWith("172.20.10.", StringComparison.Ordinal) ? "Cable USB" : "Wi-Fi";
             var detail = s.State == SessionState.Streaming
-                ? $"{s.DisplayName}{(s.HasAudio ? " con sonido" : "")} · {s.Profile}"
+                ? $"{s.DisplayName}{(s.HasAudio ? " con sonido" : "")} · {via} · {s.Profile}"
                 : "Conectando…";
             if (existing is null) Devices.Add(new DeviceItem(s.Request.Id, s.Request.Device.Name, s.Request.Device.Kind, detail));
             else existing.Detail = detail;

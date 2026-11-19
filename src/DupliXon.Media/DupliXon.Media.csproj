@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Concentus" Version="2.2.2" />
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
   </ItemGroup>
 </Project>

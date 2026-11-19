@@ -30,7 +30,15 @@ El instalador trae todo lo necesario: no tienes que instalar nada más.
 3. Acepta la solicitud en el PC.
 4. Opcional: en Safari, *Compartir → Añadir a pantalla de inicio* para tenerlo como app a pantalla completa.
 
-El PC y el dispositivo deben estar en la misma red Wi-Fi.
+El PC y el dispositivo deben estar en la misma red Wi-Fi, **o conectados por cable USB**.
+
+### Conexión por cable USB (menor latencia)
+1. Conecta el iPhone o iPad (con datos móviles) al PC con el cable.
+2. En el dispositivo activa **Ajustes → Compartir Internet**.
+3. DupliXon lo detecta solo y muestra el distintivo **USB**: escanea el código y listo.
+
+Necesitas la app **Apple Devices** (Microsoft Store) o iTunes en el PC para el controlador USB de Apple.
+Los iPad que solo tienen Wi-Fi no pueden compartir conexión por cable: con ellos usa el Wi-Fi.
 
 ## Funciones
 

@@ -85,6 +85,7 @@ public sealed class DupliXonServer : IAsyncDisposable
     public int Port { get; }
     public MirrorSettings Settings { get; }
     public string Url => $"http://{LocalAddress()}:{Port}/";
+    public string UrlFor(string address) => $"http://{address}:{Port}/";
 
     /// <summary>Asks the UI whether a device may mirror the screen.</summary>
     public Func<ConnectionRequest, CancellationToken, Task<bool>> ApproveAsync { get; set; } = (_, _) => Task.FromResult(false);
@@ -249,7 +250,8 @@ public sealed class DupliXonServer : IAsyncDisposable
     {
         var best = NetworkInterface.GetAllNetworkInterfaces()
             .Where(n => n.OperationalStatus == OperationalStatus.Up &&
-                        n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel))
+                        n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel) &&
+                        !UsbLink.IsUsbNetwork(n))
             .Select(n => (Nic: n, Props: n.GetIPProperties()))
             .Where(x => x.Props.GatewayAddresses.Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork))
             .OrderByDescending(x => x.Nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)

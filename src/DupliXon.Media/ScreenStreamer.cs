@@ -29,7 +29,8 @@ public sealed class ScreenStreamer(string ffmpegPath, EncoderKind encoder) : IAs
             $"-filter_complex \"ddagrab=output_idx={display.OutputIndex}:framerate={profile.Fps}:draw_mouse=1," +
             $"hwdownload,format=bgra,{scale},format=nv12[v]\" -map \"[v]\"",
             VideoEncoder.Arguments(encoder, profile),
-            "-bsf:v h264_metadata=aud=insert -flush_packets 1 -f h264 pipe:1");
+            // FLV frames each frame with its length, so every frame is forwarded the moment it is encoded.
+            "-flush_packets 1 -flvflags no_duration_filesize -f flv pipe:1");
 
         _process = Process.Start(new ProcessStartInfo(ffmpegPath, args)
         {
@@ -53,7 +54,7 @@ public sealed class ScreenStreamer(string ffmpegPath, EncoderKind encoder) : IAs
         {
             try
             {
-                await foreach (var frame in new AnnexBAccessUnitReader(output).ReadAsync(token))
+                await foreach (var frame in new FlvH264Reader(output).ReadAsync(token))
                     FrameEncoded?.Invoke(frame);
                 if (!token.IsCancellationRequested) Failed?.Invoke("La captura de pantalla se detuvo inesperadamente.");
             }
