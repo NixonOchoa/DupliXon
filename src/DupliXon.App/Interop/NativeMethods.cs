@@ -20,6 +20,12 @@ internal static partial class NativeMethods
     [LibraryImport("dwmapi.dll")]
     private static partial int DwmSetWindowAttribute(nint hwnd, int attr, ref int value, int size);
 
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static partial nint GetWindowLongPtr(nint hwnd, int index);
+
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    private static partial nint SetWindowLongPtr(nint hwnd, int index, nint value);
+
     [LibraryImport("dwmapi.dll")]
     private static partial int DwmExtendFrameIntoClientArea(nint hwnd, ref Margins margins);
 
@@ -29,6 +35,12 @@ internal static partial class NativeMethods
         var hwnd = new WindowInteropHelper(window).EnsureHandle();
         var source = HwndSource.FromHwnd(hwnd);
         if (source?.CompositionTarget is not null) source.CompositionTarget.BackgroundColor = Colors.Transparent;
+
+        // With the frame extended into the client area, DWM would paint its own (ghost) minimize/
+        // maximize/close buttons behind ours. Dropping WS_SYSMENU stops that; we draw our own.
+        const int GwlStyle = -16;
+        const long WsSysMenu = 0x00080000;
+        SetWindowLongPtr(hwnd, GwlStyle, (nint)((long)GetWindowLongPtr(hwnd, GwlStyle) & ~WsSysMenu));
 
         var dark = 1;
         DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref dark, sizeof(int));
