@@ -186,6 +186,58 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         timer.Tick += (_, _) => RefreshLink();
         timer.Start();
+
+        // Look for a new release now and every 6 hours.
+        _ = CheckForUpdatesAsync();
+        var updateTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(6) };
+        updateTimer.Tick += async (_, _) => await CheckForUpdatesAsync();
+        updateTimer.Start();
+    }
+
+    // ---- Self-update ----
+    private readonly Services.UpdateService _updates = new();
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUpdate))]
+    private Services.UpdateInfo? _update;
+    [ObservableProperty] private bool _isUpdating;
+    [ObservableProperty] private string _updateText = "";
+
+    public bool HasUpdate => Update is not null;
+    public string CurrentVersionText => $"Versión {Services.UpdateService.CurrentVersion}";
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (IsUpdating) return;
+        var found = await _updates.CheckAsync();
+        if (found is null) return;
+        Update = found;
+        UpdateText = $"Actualizar a {found.Version}";
+        Core.Log.Info($"update available: {found.Tag}");
+    }
+
+    [RelayCommand]
+    private async Task InstallUpdate()
+    {
+        if (Update is null || IsUpdating) return;
+        IsUpdating = true;
+        try
+        {
+            var progress = new Progress<double>(p => UpdateText = $"Descargando… {p:P0}");
+            var installer = await _updates.DownloadAsync(Update, progress);
+            UpdateText = "Instalando…";
+            Services.UpdateService.RunInstaller(installer);
+            // The installer replaces the files and opens the new version; leave the way clear.
+            await Task.Delay(1500);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Error("update failed", ex);
+            UpdateText = "Reintentar actualización";
+            IsUpdating = false;
+            VirtualHint = null;
+            StatusText = $"No se pudo actualizar: {ex.Message}";
+        }
     }
 
     // ---- Connection link: Wi-Fi or USB cable ----

@@ -82,6 +82,15 @@
                                    Visibility="{Binding EncoderName, Converter={StaticResource Visible}}" />
                     </StackPanel>
                 </StackPanel>
+                <!-- Update available -->
+                <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,416,0"
+                        Padding="16,10" Command="{Binding InstallUpdateCommand}" ToolTip="Hay una nueva versión de DupliXon"
+                        Visibility="{Binding HasUpdate, Converter={StaticResource Visible}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" Margin="0,1,8,0" />
+                        <TextBlock Text="{Binding UpdateText}" />
+                    </StackPanel>
+                </Button>
                 <Border Style="{StaticResource SegmentHost}" CornerRadius="16" Padding="3" HorizontalAlignment="Right" VerticalAlignment="Center" Width="400">
                     <UniformGrid Rows="1">
                         <Button Style="{StaticResource SegmentButton}" Padding="10,10" FontSize="14"

@@ -59,8 +59,10 @@ Name: "{autodesktop}\DupliXon"; Filename: "{app}\DupliXon.exe"; Tasks: desktopic
 ; Let devices on PRIVATE networks reach DupliXon (web page, signaling and WebRTC video).
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DupliXon"""; Flags: runhidden; StatusMsg: "Configurando el firewall de Windows..."
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""DupliXon"" dir=in action=allow program=""{app}\DupliXon.exe"" enable=yes profile=private"; Flags: runhidden
-Filename: "winget"; Parameters: "install --id Parsec.ParsecVDD -e --accept-source-agreements --accept-package-agreements"; Tasks: virtualdisplay; StatusMsg: "Instalando la pantalla virtual..."; Flags: waituntilterminated
+Filename: "winget"; Parameters: "install --id Parsec.ParsecVDD -e --accept-source-agreements --accept-package-agreements"; Tasks: virtualdisplay; StatusMsg: "Instalando la pantalla virtual..."; Flags: waituntilterminated; Check: not WizardSilent
 Filename: "{app}\DupliXon.exe"; Description: "{cm:LaunchProgram,DupliXon}"; Flags: nowait postinstall skipifsilent
+; Self-update (silent install started by DupliXon): reopen the new version for the signed-in user.
+Filename: "{app}\DupliXon.exe"; Flags: nowait runasoriginaluser; Check: WizardSilent
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DupliXon"""; Flags: runhidden; RunOnceId: "RemoveFirewallRule"
